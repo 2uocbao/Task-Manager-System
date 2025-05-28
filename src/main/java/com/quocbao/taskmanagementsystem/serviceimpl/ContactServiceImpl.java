@@ -1,48 +1,53 @@
 package com.quocbao.taskmanagementsystem.serviceimpl;
 
+import java.util.Optional;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.common.MethodGeneral;
+import com.quocbao.taskmanagementsystem.common.NotificationType;
 import com.quocbao.taskmanagementsystem.common.StatusEnum;
 import com.quocbao.taskmanagementsystem.entity.Contacts;
 import com.quocbao.taskmanagementsystem.entity.User;
+import com.quocbao.taskmanagementsystem.events.ContactEvent;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
 import com.quocbao.taskmanagementsystem.payload.request.ContactRequest;
-import com.quocbao.taskmanagementsystem.payload.request.NotifiRequest;
 import com.quocbao.taskmanagementsystem.payload.request.UpdateContactRequest;
 import com.quocbao.taskmanagementsystem.payload.response.ContactResponse;
 import com.quocbao.taskmanagementsystem.repository.ContactRepository;
-import com.quocbao.taskmanagementsystem.repository.UserRepository;
 import com.quocbao.taskmanagementsystem.service.ContactService;
-import com.quocbao.taskmanagementsystem.service.NotificationService;
+import com.quocbao.taskmanagementsystem.service.utils.NotifiHelperService;
+import com.quocbao.taskmanagementsystem.service.utils.UserHelperService;
 import com.quocbao.taskmanagementsystem.specifications.ContactSpecification;
 
-import jakarta.transaction.Transactional;
-
 @Service
-@Transactional
 public class ContactServiceImpl implements ContactService {
 
 	private final ContactRepository contactRepository;
 
-	private final NotificationService notifiService;
+	private final NotifiHelperService notifiHelperService;
 
-	private final UserRepository userRepository;
+	private final UserHelperService userHelperService;
 
 	private final IdEncoder idEncoder;
 
 	private final MethodGeneral methodGeneral;
 
-	public ContactServiceImpl(ContactRepository contactRepository, NotificationService notifiService,
-			UserRepository userRepository, IdEncoder idEncoder, MethodGeneral methodGeneral) {
+	private final ApplicationEventPublisher applicationEventPublisher;
+
+	public ContactServiceImpl(ContactRepository contactRepository, NotifiHelperService notifiHelperService,
+			UserHelperService userHelperService, IdEncoder idEncoder, MethodGeneral methodGeneral,
+			ApplicationEventPublisher applicationEventPublisher) {
 		this.contactRepository = contactRepository;
-		this.notifiService = notifiService;
-		this.userRepository = userRepository;
+		this.notifiHelperService = notifiHelperService;
+		this.userHelperService = userHelperService;
 		this.idEncoder = idEncoder;
 		this.methodGeneral = methodGeneral;
+		this.applicationEventPublisher = applicationEventPublisher;
 	}
 
 	@Override
@@ -51,44 +56,37 @@ public class ContactServiceImpl implements ContactService {
 				idEncoder.decode(contactRequest.getToUser()))) {
 			return;
 		}
-
-		User user = userRepository.findById(idEncoder.decode(contactRequest.getFromUser())).get();
-		String userToken = userRepository.getTokenOfUser(idEncoder.decode(contactRequest.getToUser())).getToken();
-
-		Contacts contacts = Contacts.builder().user(user)
-				.friendId(User.builder().id(idEncoder.decode(contactRequest.getToUser())).build())
-				.statusEnum(StatusEnum.PENDING).build();
-
-		Contacts contact = contactRepository.save(contacts);
-
-		if (!userToken.isEmpty()) {
-			notifiService.createNotification(NotifiRequest.builder().senderId(idEncoder.endcode(user.getId()))
-					.contentId(contact.getId().toString()).receiverId(contactRequest.getToUser()).type("CONTACT")
-					.tokenFcm(userToken).typeContent("REQUEST").build());
-		}
+		userHelperService.userExist(contactRequest.getToUser()).ifPresentOrElse(user -> {
+			Contacts contacts = Contacts.builder()
+					.user(User.builder().id(idEncoder.decode(contactRequest.getFromUser())).build()).friendId(user)
+					.statusEnum(StatusEnum.REQUESTED).build();
+			Contacts contact = contactRepository.save(contacts);
+			String senderName = Optional.ofNullable(user.getFirstName()).orElse("") + " "
+					+ Optional.ofNullable(user.getLastName()).orElse("");
+			applicationEventPublisher.publishEvent(new ContactEvent(idEncoder.decode(contactRequest.getFromUser()),
+					user.getId(), contact.getId(), senderName));
+		}, () -> new ResourceNotFoundException("Can not add contact"));
 
 	}
 
 	@Override
-	public void updateContact(String userId, Long id, UpdateContactRequest updateContactRequest) {
-		Contacts contacts = contactRepository.findById(id)
+	public void updateContact(String userId, String contactId, UpdateContactRequest updateContactRequest) {
+		Contacts contacts = contactRepository.findById(idEncoder.decode(contactId))
 				.orElseThrow(() -> new ResourceNotFoundException("Contact not found"));
 		methodGeneral.validatePermission(idEncoder.decode(userId), contacts.getFriendId().getId());
 		contacts.setStatusEnum(StatusEnum.valueOf(updateContactRequest.getStatus()));
+		notifiHelperService.updateNotifi(idEncoder.decode(contactId), NotificationType.CONTACT.toString());
 		contactRepository.save(contacts);
 	}
 
 	@Override
-	public void deleteContact(String userId, Long id) {
-		Contacts contacts = contactRepository.findById(id)
+	public void deleteContact(String userId, String id) {
+		Contacts contacts = contactRepository.findById(idEncoder.decode(id))
 				.orElseThrow(() -> new ResourceNotFoundException("Contact not found"));
 		methodGeneral.havePermission(idEncoder.decode(userId), contacts.getUser().getId(),
 				contacts.getFriendId().getId());
-
-		notifiService.deleteNotification(contacts.getUser().getId(),
-				contacts.getFriendId().getId(), "CONTACT");
+		notifiHelperService.deleteNotification(contacts.getId(), NotificationType.CONTACT.toString());
 		contactRepository.delete(contacts);
-		
 	}
 
 	@Override
@@ -100,6 +98,7 @@ public class ContactServiceImpl implements ContactService {
 		} else if ("ACCEPTED".equals(status)) {
 			specificationBase = ContactSpecification.findContactReceive(idEncoder.decode(userId))
 					.or(ContactSpecification.findContactByUserId(idEncoder.decode(userId)));
+
 		} else {
 			specificationBase = ContactSpecification.findContactByUserId(idEncoder.decode(userId));
 		}
@@ -110,13 +109,14 @@ public class ContactServiceImpl implements ContactService {
 
 		Page<ContactResponse> contactResponse = contacts.map(contact -> {
 			if (contact.getUser().getId() == idEncoder.decode(userId)) {
-				return new ContactResponse(contact.getId(), idEncoder.endcode(contact.getFriendId().getId()),
-						contact.getFriendId().getFirstName(), contact.getFriendId().getLastName(),
-						contact.getFriendId().getEmail(), contact.getFriendId().getImage());
+				return new ContactResponse(idEncoder.endcode(contact.getId()),
+						idEncoder.endcode(contact.getFriendId().getId()), contact.getFriendId().getFirstName(),
+						contact.getFriendId().getLastName(), contact.getFriendId().getEmail(),
+						contact.getFriendId().getImage(), contact.getStatusEnum().toString());
 			}
-			return new ContactResponse(contact.getId(), idEncoder.endcode(contact.getFriendId().getId()),
-					contact.getFriendId().getFirstName(), contact.getFriendId().getLastName(),
-					contact.getFriendId().getEmail(), contact.getFriendId().getImage());
+			return new ContactResponse(idEncoder.endcode(contact.getId()), idEncoder.endcode(contact.getUser().getId()),
+					contact.getUser().getFirstName(), contact.getUser().getLastName(), contact.getUser().getEmail(),
+					contact.getUser().getImage(), contact.getStatusEnum().toString());
 		});
 
 		return contactResponse;
@@ -129,8 +129,8 @@ public class ContactServiceImpl implements ContactService {
 		}
 		return contactRepository
 				.searchContact(idEncoder.decode(userId), StatusEnum.valueOf(status), keySearch, pageable)
-				.map(t -> new ContactResponse(t.getId(), idEncoder.endcode(t.getUserId()), t.getFirstName(),
-						t.getLastName(), t.getEmail(), t.getImage()));
+				.map(t -> new ContactResponse(idEncoder.endcode(t.getId()), idEncoder.endcode(t.getUserId()),
+						t.getFirstName(), t.getLastName(), t.getEmail(), t.getImage(), t.getStatus()));
 	}
 
 }

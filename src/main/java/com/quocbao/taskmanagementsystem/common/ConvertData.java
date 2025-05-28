@@ -14,7 +14,6 @@ public abstract class ConvertData {
 
 	ConvertData() {
 	}
-	
 
 	public static String timeStampToString(Timestamp timestamp) {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -37,15 +36,16 @@ public abstract class ConvertData {
 				.toLocalDate();
 		return localDate.format(DateTimeFormatter.ofPattern("yyyy-MM-d"));
 	}
-	
+
 	public static Boolean isImage(String imageName) {
 		List<String> fileImage = new ArrayList<>();
 		fileImage.add("jpg");
 		fileImage.add("png");
 		fileImage.add("jpeg");
 		fileImage.add("jfif");
-		return fileImage.stream().anyMatch(t -> imageName.substring(imageName.indexOf(".") + 1, imageName.length()).equals(t));
-		
+		return fileImage.stream()
+				.anyMatch(t -> imageName.substring(imageName.indexOf(".") + 1, imageName.length()).equals(t));
+
 	}
 
 }

@@ -12,4 +12,7 @@ public class FcmRequest {
 	
 	@JsonProperty("fcmToken")
 	private String fcmToken;
+	
+	@JsonProperty("language")
+	private String language;
 }

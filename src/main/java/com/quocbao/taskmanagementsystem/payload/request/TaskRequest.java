@@ -21,6 +21,10 @@ public class TaskRequest {
 	
 	@JsonProperty("status")
 	private String status;
+	
+	@JsonProperty("start_date")
+	private String startDate;
+	
 	@JsonProperty("due_at")
 	private String dueAt;
 }

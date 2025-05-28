@@ -3,8 +3,8 @@ package com.quocbao.taskmanagementsystem.serviceimpl;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -14,69 +14,78 @@ import org.springframework.transaction.annotation.Transactional;
 import com.quocbao.taskmanagementsystem.common.ConvertData;
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.common.MethodGeneral;
+import com.quocbao.taskmanagementsystem.common.NotificationType;
 import com.quocbao.taskmanagementsystem.common.PriorityEnum;
 import com.quocbao.taskmanagementsystem.common.StatusEnum;
 import com.quocbao.taskmanagementsystem.entity.Task;
 import com.quocbao.taskmanagementsystem.entity.User;
+import com.quocbao.taskmanagementsystem.events.TaskEvent;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
-import com.quocbao.taskmanagementsystem.payload.request.NotifiRequest;
 import com.quocbao.taskmanagementsystem.payload.request.TaskRequest;
 import com.quocbao.taskmanagementsystem.payload.response.TaskResponse;
-import com.quocbao.taskmanagementsystem.repository.CommentRepository;
-import com.quocbao.taskmanagementsystem.repository.ReportRepository;
 import com.quocbao.taskmanagementsystem.repository.TaskRepository;
-import com.quocbao.taskmanagementsystem.repository.UserRepository;
-import com.quocbao.taskmanagementsystem.service.NotificationService;
 import com.quocbao.taskmanagementsystem.service.TaskService;
+import com.quocbao.taskmanagementsystem.service.utils.CommentHelperService;
+import com.quocbao.taskmanagementsystem.service.utils.ReportHelperService;
+import com.quocbao.taskmanagementsystem.service.utils.UserHelperService;
 import com.quocbao.taskmanagementsystem.specifications.TaskSpecification;
 
 @Service
 @Transactional
 public class TaskServiceImpl implements TaskService {
 
-	private final NotificationService notificationService;
-
 	private final TaskRepository taskRepository;
 
-	private final CommentRepository commentRepository;
+	private final CommentHelperService commentHelperService;
 
-	private final ReportRepository reportRepository;
+	private final ReportHelperService reportHelperService;
 
 	private final MethodGeneral methodGeneral;
 
-	private final UserRepository userRepository;
+	private final UserHelperService userHelperService;
 
 	private final IdEncoder idEncoder;
 
-	public TaskServiceImpl(TaskRepository taskRepository, UserRepository userRepository, MethodGeneral methodGeneral,
-			CommentRepository commentRepository, ReportRepository reportRepository,
-			NotificationService notificationService, IdEncoder idEncoder) {
-		this.notificationService = notificationService;
+	private final ApplicationEventPublisher applicationEventPublisher;
+
+	public TaskServiceImpl(TaskRepository taskRepository, UserHelperService userHelperService,
+			MethodGeneral methodGeneral, CommentHelperService commentHelperService,
+			ReportHelperService reportHelperService, IdEncoder idEncoder,
+			ApplicationEventPublisher applicationEventPublisher) {
 		this.taskRepository = taskRepository;
 		this.methodGeneral = methodGeneral;
-		this.commentRepository = commentRepository;
-		this.reportRepository = reportRepository;
-		this.userRepository = userRepository;
+		this.commentHelperService = commentHelperService;
+		this.reportHelperService = reportHelperService;
+		this.userHelperService = userHelperService;
 		this.idEncoder = idEncoder;
+		this.applicationEventPublisher = applicationEventPublisher;
 	}
 
 	@Override
 	public TaskResponse createTask(TaskRequest taskRequest) {
+		User user = userHelperService.userExist(taskRequest.getCreatorId())
+				.orElseThrow(() -> new ResourceNotFoundException("User can not found"));
 		Task task = new Task(taskRequest);
-		task.setUser(User.builder().id(idEncoder.decode(taskRequest.getCreatorId())).build());
+		task.setUser(user);
 		return new TaskResponse(taskRepository.save(task));
+
 	}
 
 	@Override
-	public TaskResponse getTask(String taskId) {
+	public TaskResponse getTask(String userId, String taskId) {
 		Task task = taskRepository.findById(idEncoder.decode(taskId))
 				.orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+		if (task.getAssignTo() != null) {
+			methodGeneral.havePermission(idEncoder.decode(userId), task.getUser().getId(), task.getAssignTo().getId());
+		} else {
+			methodGeneral.validatePermission(idEncoder.decode(userId), task.getUser().getId());
+		}
 		TaskResponse taskResponse = new TaskResponse(task);
 		Optional.ofNullable(task.getAssignTo()).ifPresent(assignTo -> {
-			String firstName = Optional.ofNullable(assignTo.getFirstName()).orElse("");
-			String lastName = Optional.ofNullable(assignTo.getLastName()).orElse("");
+			String assignName = Optional.ofNullable(assignTo.getFirstName()).orElse("") + " "
+					+ Optional.ofNullable(assignTo.getLastName()).orElse("");
 			String image = Optional.ofNullable(assignTo.getImage()).orElse("");
-			taskResponse.setUsername((firstName + " " + lastName).trim());
+			taskResponse.setUsername(assignName.trim());
 			taskResponse.setAssignTo(idEncoder.endcode(assignTo.getId()));
 			taskResponse.setImage(image);
 		});
@@ -106,7 +115,7 @@ public class TaskServiceImpl implements TaskService {
 	@Override
 	public Page<TaskResponse> getTasks(String userId, String status, String priority, String startDate, String endDate,
 			Boolean assign, Pageable pageable) {
-		
+
 		if (Boolean.TRUE.equals(assign)) {
 			Page<Task> tasks = listTasksAssign(userId, status, priority, startDate, endDate, pageable);
 			return result(tasks);
@@ -117,8 +126,8 @@ public class TaskServiceImpl implements TaskService {
 
 	private Page<TaskResponse> result(Page<Task> tasks) {
 		List<Long> taskIds = tasks.map(Task::getId).toList();
-		Map<Long, Long> commentCounts = countComment(taskIds);
-		Map<Long, Long> reportCounts = countReport(taskIds);
+		Map<Long, Long> commentCounts = commentHelperService.countComment(taskIds);
+		Map<Long, Long> reportCounts = reportHelperService.countReport(taskIds);
 		return customResponse(tasks, commentCounts, reportCounts);
 	}
 
@@ -142,7 +151,11 @@ public class TaskServiceImpl implements TaskService {
 	@Override
 	public String updateStatus(String taskId, String userId, TaskRequest taskRequest) {
 		taskRepository.findById(idEncoder.decode(taskId)).map(task -> {
-			methodGeneral.havePermission(idEncoder.decode(userId), task.getUser().getId(), task.getAssignTo().getId());
+			if (task.getAssignTo() != null) {
+				methodGeneral.havePermission(idEncoder.decode(userId), task.getUser().getId(), task.getAssignTo().getId());
+			} else {
+				methodGeneral.validatePermission(idEncoder.decode(userId), task.getUser().getId());
+			}
 			task.setStatus(StatusEnum.valueOf(taskRequest.getStatus()));
 			taskRepository.save(task);
 			return "Success";
@@ -169,9 +182,11 @@ public class TaskServiceImpl implements TaskService {
 	}
 
 	private Task assignTaskToNewUser(Task task, String assignee) {
-		task.setAssignTo(User.builder().id(idEncoder.decode(assignee)).build());
+		User user = userHelperService.userExist(assignee)
+				.orElseThrow(() -> new ResourceNotFoundException("User can not found"));
+		task.setAssignTo(user);
 		taskRepository.save(task);
-		sendNotification(task, assignee, "NEW_ASSIGN");
+		pushTaskEvent(task, assignee, NotificationType.NEW_ASSIGN.toString());
 		return task;
 	}
 
@@ -180,7 +195,7 @@ public class TaskServiceImpl implements TaskService {
 			task.setAssignTo(null);
 			task.setStatus(StatusEnum.CANCELLED);
 			taskRepository.save(task);
-			sendNotification(task, assignee, "REMOVE_ASSIGN");
+			pushTaskEvent(task, assignee, NotificationType.REMOVE_ASSIGN.toString());
 		}
 		return task;
 	}
@@ -216,17 +231,6 @@ public class TaskServiceImpl implements TaskService {
 		return taskRepository.findAll(specification, pageable);
 	}
 
-	private Map<Long, Long> countComment(List<Long> taskIds) {
-		return commentRepository.countByTaskIds(taskIds).stream()
-				.collect(Collectors.toMap(CommentRepository.CommentCountProjection::getTaskId,
-						CommentRepository.CommentCountProjection::getCount));
-	}
-
-	private Map<Long, Long> countReport(List<Long> taskIds) {
-		return reportRepository.countByTaskIds(taskIds).stream().collect(Collectors.toMap(
-				ReportRepository.ReportCountProjection::getTaskId, ReportRepository.ReportCountProjection::getCount));
-	}
-
 	private Page<TaskResponse> customResponse(Page<Task> tasks, Map<Long, Long> commentCounts,
 			Map<Long, Long> reportCounts) {
 		return tasks.map(task -> {
@@ -239,13 +243,12 @@ public class TaskServiceImpl implements TaskService {
 		});
 	}
 
-	private void sendNotification(Task task, String receiverId, String typeContent) {
-		String tokenOfUser = userRepository.getTokenOfUser(idEncoder.decode(receiverId)).getToken();
-		if(tokenOfUser != null) {
-			notificationService.createNotification(NotifiRequest.builder()
-					.senderId(idEncoder.endcode(task.getUser().getId())).receiverId(receiverId).type("TASK")
-					.typeContent(typeContent).tokenFcm(tokenOfUser).contentId(idEncoder.endcode(task.getId())).build());
-		}
-		
+	private void pushTaskEvent(Task task, String assignee, String contentType) {
+		String senderName = Optional.ofNullable(task.getUser())
+				.map(user -> Optional.ofNullable(user.getFirstName()).orElse("") + " "
+						+ Optional.ofNullable(user.getLastName()).orElse(""))
+				.orElse("Unknown User");
+		applicationEventPublisher.publishEvent(new TaskEvent(task.getId(), task.getUser().getId(),
+				idEncoder.decode(assignee), senderName, task.getTitle(), contentType));
 	}
 }

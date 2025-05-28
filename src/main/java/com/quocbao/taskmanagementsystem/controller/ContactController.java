@@ -42,16 +42,16 @@ public class ContactController {
 		return new DataResponse(HttpStatus.OK.value(), null, "Add request successful");
 	}
 
-	@PutMapping("/users/{userId}/contacts/{id}")
-	public DataResponse updateContact(@PathVariable String userId, @PathVariable Long id,
+	@PutMapping("/users/{userId}/contacts/{contactId}")
+	public DataResponse updateContact(@PathVariable String userId, @PathVariable String contactId,
 			@RequestBody UpdateContactRequest updateContactRequest) {
-		contactService.updateContact(userId, id, updateContactRequest);
+		contactService.updateContact(userId, contactId, updateContactRequest);
 		return new DataResponse(HttpStatus.OK.value(), null, "Update request successful");
 	}
 
-	@DeleteMapping("/users/{userId}/contacts/{id}")
-	public DataResponse deleteContact(@PathVariable String userId, @PathVariable Long id) {
-		contactService.deleteContact(userId, id);
+	@DeleteMapping("/users/{userId}/contacts/{contactId}")
+	public DataResponse deleteContact(@PathVariable String userId, @PathVariable String contactId) {
+		contactService.deleteContact(userId, contactId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Success");
 	}
 

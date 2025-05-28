@@ -39,10 +39,6 @@ public class UserController {
 		this.jwtTokenProvider = jwtTokenProvider;
 	}
 	
-	@GetMapping("/oauth2")
-	public void auth() {
-		
-	}
 
 	@GetMapping("/email")
 	public DataResponse getUserByEmail(@RequestHeader("Authorization") String authHeader) {
@@ -89,4 +85,10 @@ public class UserController {
 	public void addToken(@RequestBody FcmRequest fcmRequest) {
 		userService.addToken(fcmRequest);
 	}
+	
+	@GetMapping("/{userId}/mentions")
+	public DataResponse getUser(@PathVariable String userId) {
+		return new DataResponse(HttpStatus.OK.value(), userService.getUser(userId), "success");
+	}
+	
 }

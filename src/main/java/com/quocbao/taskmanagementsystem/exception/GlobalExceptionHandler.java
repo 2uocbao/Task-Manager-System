@@ -56,4 +56,14 @@ public class GlobalExceptionHandler {
 		errorResponse.setDetail(ex.getMessage());
 		return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
 	}
+
+	@ExceptionHandler(UnauthorizedException.class)
+	public ResponseEntity<ErrorResponse> unauthorizatedException(UnauthorizedException ex) {
+		ErrorResponse errorResponse = new ErrorResponse();
+		errorResponse.setTitle("Unauthorization");
+		errorResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+		errorResponse.setDetail(ex.getMessage());
+		return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+
+	}
 }

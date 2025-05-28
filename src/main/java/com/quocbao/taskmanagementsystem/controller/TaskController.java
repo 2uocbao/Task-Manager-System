@@ -43,9 +43,9 @@ public class TaskController {
 		return new DataResponse(HttpStatus.OK.value(), entityModel, "Task creation request successful.");
 	}
 
-	@GetMapping("/tasks/{taskId}")
-	public DataResponse getTask( @PathVariable String taskId) {
-		TaskResponse taskResponse = taskService.getTask( taskId);
+	@GetMapping("/users/{userId}/tasks/{taskId}")
+	public DataResponse getTask(@PathVariable String userId, @PathVariable String taskId) {
+		TaskResponse taskResponse = taskService.getTask(userId, taskId);
 		return new DataResponse(HttpStatus.OK.value(), taskResponse, "Retrieve info Task.");
 	}
 

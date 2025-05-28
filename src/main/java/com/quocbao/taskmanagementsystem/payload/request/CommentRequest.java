@@ -9,6 +9,8 @@ import lombok.Setter;
 @Setter
 public class CommentRequest {
 
+	@JsonProperty("mention")
+	private String mention;
 	@JsonProperty("text")
 	private String text;
 }

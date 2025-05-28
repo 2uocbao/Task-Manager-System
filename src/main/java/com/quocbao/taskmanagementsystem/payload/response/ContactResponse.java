@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class ContactResponse {
 
 	@JsonProperty("id")
-	private Long id;
+	private String id;
 	
 	@JsonProperty("user_id")
 	private String userId;
@@ -29,11 +29,12 @@ public class ContactResponse {
 		
 	}
 	
-	public ContactResponse(Long id, String userId, String firstName, String lastName, String email, String image) {
+	public ContactResponse(String id, String userId, String firstName, String lastName, String email, String image, String status) {
 		this.id = id;
 		this.userId = userId;
 		this.username = firstName + " " + lastName;
 		this.image = image;
 		this.email = email;
+		this.status = status;
 	}
 }

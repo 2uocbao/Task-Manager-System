@@ -63,6 +63,9 @@ public class Task implements Serializable {
 	@Column(name = "status")
 	@Enumerated(EnumType.STRING)
 	private StatusEnum status;
+	
+	@Column(name = "start_date")
+	private Timestamp startDate;
 
 	@CreationTimestamp
 	@Temporal(TemporalType.TIMESTAMP)
@@ -106,6 +109,7 @@ public class Task implements Serializable {
 	public Task updateTask(TaskRequest taskRequest) {
 		this.title = taskRequest.getTitle();
 		this.description = taskRequest.getDescription();
+		this.startDate = taskRequest.getStartDate() != null ? ConvertData.toTimestamp(taskRequest.getStartDate()) : null;
 		this.dueAt = ConvertData.toTimestamp(taskRequest.getDueAt());
 		this.priority = PriorityEnum.valueOf(taskRequest.getPriority());
 		this.status = StatusEnum.valueOf(taskRequest.getStatus());

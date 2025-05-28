@@ -40,6 +40,9 @@ public class TaskResponse {
 
 	@JsonProperty("status")
 	private String status;
+	
+	@JsonProperty("start_date")
+	private String startDate;
 
 	@JsonProperty("created_at")
 	private String createdAt;
@@ -77,6 +80,7 @@ public class TaskResponse {
 		this.status = task.getStatus().toString();
 		this.createdAt = ConvertData.timeStampToString(task.getCreatedAt());
 		this.updatedAt = ConvertData.timeStampToString(task.getUpdatedAt());
+		this.startDate = task.getStartDate() != null ? ConvertData.timeStampToString(task.getStartDate()) : null;
 		this.dueAt = ConvertData.timeStampToString(task.getDueAt());
 	}
 }

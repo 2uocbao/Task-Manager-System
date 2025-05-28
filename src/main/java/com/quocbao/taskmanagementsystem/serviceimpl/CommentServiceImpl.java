@@ -1,9 +1,8 @@
 package com.quocbao.taskmanagementsystem.serviceimpl;
 
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -13,60 +12,63 @@ import com.quocbao.taskmanagementsystem.common.MethodGeneral;
 import com.quocbao.taskmanagementsystem.entity.Task;
 import com.quocbao.taskmanagementsystem.entity.Comment;
 import com.quocbao.taskmanagementsystem.entity.User;
+import com.quocbao.taskmanagementsystem.events.CommentEvent;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
-import com.quocbao.taskmanagementsystem.payload.request.NotifiRequest;
 import com.quocbao.taskmanagementsystem.payload.request.CommentRequest;
 import com.quocbao.taskmanagementsystem.payload.response.CommentResponse;
 import com.quocbao.taskmanagementsystem.repository.CommentRepository;
-import com.quocbao.taskmanagementsystem.repository.UserRepository;
 import com.quocbao.taskmanagementsystem.service.CommentService;
-import com.quocbao.taskmanagementsystem.service.NotificationService;
+import com.quocbao.taskmanagementsystem.service.utils.TaskHelperService;
+import com.quocbao.taskmanagementsystem.service.utils.UserHelperService;
 
 @Service
 public class CommentServiceImpl implements CommentService {
 
+	private final ApplicationEventPublisher applicationEventPublisher;
 	private final CommentRepository commentRepository;
-	private final UserRepository userRepository;
-	private final NotificationService notificationService;
+	private final UserHelperService userHelperService;
+	private final TaskHelperService taskHelperService;
 	private final MethodGeneral methodGeneral;
 	private final IdEncoder idEncoder;
 
-	public CommentServiceImpl(CommentRepository commentRepository, UserRepository userRepository,
-			NotificationService notificationService, MethodGeneral methodGeneral, IdEncoder idEncoder) {
+	public CommentServiceImpl(ApplicationEventPublisher applicationEventPublisher, CommentRepository commentRepository,
+			UserHelperService userHelperService, TaskHelperService taskHelperService, MethodGeneral methodGeneral,
+			IdEncoder idEncoder) {
+		this.applicationEventPublisher = applicationEventPublisher;
 		this.commentRepository = commentRepository;
-		this.userRepository = userRepository;
-		this.notificationService = notificationService;
+		this.userHelperService = userHelperService;
+		this.taskHelperService = taskHelperService;
 		this.methodGeneral = methodGeneral;
 		this.idEncoder = idEncoder;
 	}
 
 	@Override
 	public CommentResponse createComment(String userId, String taskId, CommentRequest commentRequest) {
-
-		User user = userRepository.findById(idEncoder.decode(userId))
+		Task task = fetchTaskAndCheckUserHaveAccess(taskId, userId);
+		User user = userHelperService.userExist(userId)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-		// Set value new task review
-		Comment comment = new Comment(user, Task.builder().id(idEncoder.decode(taskId)).build(),
-				commentRequest.getText());
-
-		// Get user have in message
-		Pattern pattern = Pattern.compile("@(\\w+)");
-		Matcher matcher = pattern.matcher(commentRequest.getText());
-		if (matcher.find()) {
-			sendNotification(matcher.group().split("@")[1], user.getEmail().split("@")[0], taskId);
+		Comment comment = new Comment(user, task, commentRequest.getText());
+		if (commentRequest.getMention() != null) {
+			String senderName = Optional.ofNullable(task.getUser())
+					.map(userSender -> Optional.ofNullable(userSender.getFirstName()).orElse("") + " "
+							+ Optional.ofNullable(userSender.getLastName()).orElse(""))
+					.orElse("Unknown User");
+			applicationEventPublisher.publishEvent(new CommentEvent(user.getId(),
+					idEncoder.decode(commentRequest.getMention()), task.getId(), senderName, task.getTitle()));
 		}
-		commentRepository.save(comment);
-		return new CommentResponse(comment);
+		return new CommentResponse(commentRepository.save(comment));
 	}
 
-	protected void sendNotification(String usernameReceiver, String senderId, String taskId) {
-		User user = userRepository.findByEmail(usernameReceiver + "@gmail.com");
-		Optional.ofNullable(user).ifPresent(userPre -> {
-			notificationService.createNotification(NotifiRequest.builder().tokenFcm(userPre.getToken())
-					.contentId(taskId).receiverId(idEncoder.endcode(userPre.getId())).type("COMMENT").typeContent("MENTION")
-					.senderId(senderId).build());
-		});
+	private Task fetchTaskAndCheckUserHaveAccess(String taskId, String userId) {
+		Task task = taskHelperService.existTask(taskId)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+		if (task.getAssignTo() != null) {
+			methodGeneral.havePermission(idEncoder.decode(userId), task.getUser().getId(), task.getAssignTo().getId());
+		} else {
+
+			methodGeneral.validatePermission(idEncoder.decode(userId), task.getUser().getId());
+		}
+		return task;
 	}
 
 	@Override
@@ -94,4 +96,5 @@ public class CommentServiceImpl implements CommentService {
 		methodGeneral.validatePermission(idEncoder.decode(userId), comment.getUser().getId());
 		commentRepository.delete(comment);
 	}
+
 }

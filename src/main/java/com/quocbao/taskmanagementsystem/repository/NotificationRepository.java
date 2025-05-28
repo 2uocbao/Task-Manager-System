@@ -7,9 +7,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.quocbao.taskmanagementsystem.entity.Notification;
 
@@ -19,10 +21,12 @@ public interface NotificationRepository
 	
 	List<Notification> findAllByReceiverIdAndIsReadFalse(Long userId);
 	
-	@Query("DELETE FROM Notification n WHERE ((n.receiverId = :receiverId and n.senderId = :userId) "
-			+ "OR (n.senderId = :receiverId and n.receiverId = :userId)) AND n.type = :type")
-	void deleteByReceiverIdOrUserIdAndType(@Param("receiverId") Long receiverId,
-            @Param("userId") Long userId,
+	Notification findByContentIdAndType(Long contentId, String type);
+	
+	@Modifying
+	@Transactional
+	@Query("DELETE FROM Notification n WHERE n.contentId = :contentId AND n.type = :type")
+	void deleteByReceiverIdOrUserIdAndType(@Param("contentId") Long contentId,
             @Param("type") String type);
 	
 	@Query("SELECT "
@@ -55,5 +59,5 @@ public interface NotificationRepository
 		Timestamp getCreatedAt();
 		String getType();
 	}
-
+	
 }

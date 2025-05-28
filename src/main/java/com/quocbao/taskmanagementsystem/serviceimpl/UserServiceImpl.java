@@ -19,17 +19,17 @@ import jakarta.transaction.Transactional;
 public class UserServiceImpl implements UserService {
 
 	private final UserRepository userRepository;
-	private final IdEncoder idEndcoder;
+	private final IdEncoder idEncoder;
 
-	public UserServiceImpl(UserRepository userRepository, IdEncoder idEndcoder) {
+	public UserServiceImpl(UserRepository userRepository, IdEncoder idEncoder) {
 		this.userRepository = userRepository;
-		this.idEndcoder = idEndcoder;
+		this.idEncoder = idEncoder;
 	}
 
 	@Override
 	public Page<UserResponse> searchUser(String userId, String keySearch, Pageable pageable) {
-		return userRepository.searchUser(idEndcoder.decode(userId), keySearch, pageable)
-				.map(t -> new UserResponse(idEndcoder.endcode(t.getId()), t.getFirst(), t.getLast(), t.getImage(),
+		return userRepository.searchUser(idEncoder.decode(userId), keySearch, pageable)
+				.map(t -> new UserResponse(idEncoder.endcode(t.getId()), t.getFirst(), t.getLast(), t.getImage(),
 						t.getEmail()));
 	}
 
@@ -43,16 +43,18 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public String getToken(Long userId) {
-		User user = userRepository.findById(userId).get();
-		return user.getToken();
-	}
-
-	@Override
 	public void addToken(FcmRequest fcmRequest) {
-		userRepository.findById(idEndcoder.decode(fcmRequest.getUserId())).ifPresentOrElse(t -> {
+		userRepository.findById(idEncoder.decode(fcmRequest.getUserId())).ifPresentOrElse(t -> {
 			t.setToken(fcmRequest.getFcmToken());
+			t.setLanguage(fcmRequest.getLanguage());
 			userRepository.save(t);
 		}, () -> new ResourceNotFoundException());
 	}
+
+	@Override
+	public UserResponse getUser(String userId) {
+		User user = userRepository.findById(idEncoder.decode(userId)).get();
+		return new UserResponse(userId, user.getFirstName(), user.getLastName(), user.getImage(), null);
+	}
+
 }

@@ -13,7 +13,7 @@ import lombok.Setter;
 public class NotifiResponse {
 
 	@JsonProperty("id")
-	private long id;
+	private String id;
 
 	@JsonProperty("sender_id")
 	private String senderId;
@@ -44,7 +44,7 @@ public class NotifiResponse {
 
 	public NotifiResponse(Long id, String senderId, String contentId, String senderName, String image,
 			String typeContent, String titleTask, Boolean status, String type, Timestamp createdAt) {
-		this.id = id;
+		this.id = String.valueOf(id);
 		this.senderId = senderId;
 		this.contentId = contentId;
 		this.senderName = senderName;
@@ -53,15 +53,15 @@ public class NotifiResponse {
 		this.titleTask = titleTask;
 		this.status = status;
 		this.type = type;
-		this.createdAt = ConvertData.timeStampToString(createdAt);
+		this.createdAt = createdAt == null ? null : ConvertData.timeStampToString(createdAt);
 	}
 
 	public Map<String, String> toMap() {
 		Map<String, String> map = new HashMap<>();
-		map.put("sender_id", senderId);
+		map.put("id", id);
 		map.put("content_id", contentId);
 		map.put("sender_name", senderName);
-		map.put("typeContent", typeContent);
+		map.put("type_content", typeContent);
 		map.put("title_task", titleTask);
 		map.put("type", type);
 		return map;

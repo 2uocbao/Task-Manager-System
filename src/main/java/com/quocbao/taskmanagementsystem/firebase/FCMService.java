@@ -37,7 +37,9 @@ public class FCMService {
 		return AndroidConfig.builder().setTtl(Duration.ofMinutes(2).toMillis()).setCollapseKey(topic)
 				.setPriority(AndroidConfig.Priority.HIGH)
 				.setNotification(AndroidNotification.builder().setSound(NotificationParameter.SOUND.getValue())
-						.setColor(NotificationParameter.COLOR.getValue()).setTag(topic).build())
+						.setColor(NotificationParameter.COLOR.getValue()).setTag(topic)
+						.setClickAction("FLUTTER_NOTIFICATION_CLICK")
+						.build())
 				.build();
 	}
 
@@ -45,8 +47,8 @@ public class FCMService {
 		return ApnsConfig.builder().setAps(Aps.builder().setCategory(topic).setThreadId(topic).build()).build();
 	}
 
-	private Message getPreconfiguredMessageWithData(Map<String, String> data, String token, String title, String body,
-			String topic) {
+	private Message getPreconfiguredMessageWithData(Map<String, String> data, String token, String topic, String title,
+			String body) {
 		return getPreConfiguredMessageBuilder(topic, title, body).putAllData(data).setToken(token).build();
 	}
 

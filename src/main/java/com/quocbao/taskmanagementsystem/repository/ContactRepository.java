@@ -21,7 +21,8 @@ public interface ContactRepository extends JpaRepository<Contacts, Long>, JpaSpe
 			+ "u.firstName AS firstName, "
 			+ "u.lastName AS lastName, "
 			+ "u.email AS email, "
-			+ "u.image AS image "
+			+ "u.image AS image, "
+			+ "c.statusEnum AS status "
 			+ "FROM Contacts c "
 			+ "LEFT JOIN User u ON ("
 			+ "(c.user.id = :userId AND c.friendId.id = u.id)"
@@ -41,6 +42,7 @@ public interface ContactRepository extends JpaRepository<Contacts, Long>, JpaSpe
 		String getLastName();
 		String getImage();
 		String getEmail();
+		String getStatus();
 	}
 	
 	@Query("SELECT COUNT(c) > 0 FROM Contacts c " +

@@ -53,6 +53,9 @@ public class User implements Serializable {
 
 	@Column(name = "token")
 	private String token;
+	
+	@Column(name = "language")
+	private String language;
 
 	@OneToMany(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id")

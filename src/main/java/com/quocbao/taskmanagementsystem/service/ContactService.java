@@ -11,9 +11,9 @@ public interface ContactService {
 
 	public void createContact(ContactRequest contactRequest);
 
-	public void updateContact(String userId, Long id, UpdateContactRequest updateContactRequest);
+	public void updateContact(String userId, String id, UpdateContactRequest updateContactRequest);
 
-	public void deleteContact(String userId, Long id);
+	public void deleteContact(String userId, String id);
 
 	public Page<ContactResponse> listContactByStatus(String userId, String status, Pageable pageable);
 

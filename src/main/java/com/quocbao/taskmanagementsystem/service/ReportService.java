@@ -20,5 +20,4 @@ public interface ReportService {
 	public List<ReportResponse> getReports(String taskId);
 
 	public Path getFile(String userId, String taskId, String reportId);
-
 }

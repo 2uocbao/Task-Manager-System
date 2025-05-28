@@ -11,8 +11,9 @@ public interface UserService {
 	public User getUserByEmail(String email);
 
 	public Page<UserResponse> searchUser(String userId, String keySearch, Pageable pageable);
-	
-	public String getToken(Long userId);
-	
+
 	public void addToken(FcmRequest fcmRequest);
+
+	public UserResponse getUser(String userId);
+
 }
