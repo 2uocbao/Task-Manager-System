@@ -23,6 +23,8 @@ public interface NotificationRepository
 	
 	Notification findByContentIdAndType(Long contentId, String type);
 	
+	Boolean existsByReceiverIdAndIsReadIsFalse(Long userId);
+	
 	@Modifying
 	@Transactional
 	@Query("DELETE FROM Notification n WHERE n.contentId = :contentId AND n.type = :type")

@@ -12,4 +12,6 @@ public interface NotificationService {
 	public void updateStatusAll(String userId);
 
 	Page<NotifiResponse> getNotifications(String userId, String type, Boolean status, Pageable pageable);
+
+	public boolean haveUnRead(String userId);
 }

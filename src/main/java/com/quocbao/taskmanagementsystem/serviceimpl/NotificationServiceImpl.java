@@ -56,4 +56,8 @@ public class NotificationServiceImpl implements NotificationService {
 
 	}
 
+	@Override
+	public boolean haveUnRead(String userId) {
+		return notificationRepository.existsByReceiverIdAndIsReadIsFalse(idEncoder.decode(userId));
+	}
 }

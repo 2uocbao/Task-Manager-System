@@ -59,4 +59,9 @@ public class NotificationController {
 		notificationService.updateStatusNotification(userId, notificationId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Success");
 	}
+	
+	@GetMapping("/users/{userId}/notifications/unread")
+	public DataResponse haveUnRead(@PathVariable String userId) {
+		return new DataResponse(HttpStatus.OK.value(), notificationService.haveUnRead(userId), "Success");
+	}
 }
