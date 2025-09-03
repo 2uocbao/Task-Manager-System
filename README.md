@@ -15,6 +15,28 @@ This project is a RESTful API built with **Spring Boot**. It demonstrates integr
 
 ---
 
+## 🚀 API Capabilities
+
+This server powers a **Task Flow application**, providing secured REST APIs for managing tasks, users, and notifications.
+
+- 🔐 **Authentication & Authorization** – OAuth2 with JWT  
+- ✅ **Task Management** – Create, update, delete, and retrieve tasks  
+- 👤 **User Management** – Manage user accounts (CRUD)  
+- 📲 **Notifications** – Send push notifications with Firebase Cloud Messaging (FCM)  
+
+### 📘 API Documentation
+This project includes **Swagger UI** for exploring and testing the APIs.
+
+Once the server is running, open:  
+👉 [http://localhost:9091/swagger-ui.html](http://localhost:9091/swagger-ui.html)  
+
+Swagger provides:
+- Interactive API testing  
+- Schema definitions (request/response models)  
+- Endpoint documentation (methods, parameters, auth requirements)  
+
+---
+
 ## 📦 Requirements
 
 ### Tools
@@ -128,3 +150,21 @@ project-name/
 ├── Dockerfile           # Container configuration
 └── README.md            # Documentation
 ```
+
+---
+
+## 🤝 Contributing
+Contributions are welcome! To get started:
+
+1. Fork this repository  
+2. Create your feature branch (`git checkout -b feature/my-feature`)  
+3. Commit your changes (`git commit -m 'Add new feature'`)  
+4. Push to the branch (`git push origin feature/my-feature`)  
+5. Open a Pull Request  
+
+Please make sure to update tests as appropriate.
+
+---
+
+## 📜 License
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
