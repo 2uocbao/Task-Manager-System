@@ -52,6 +52,7 @@ This project is a RESTful API built with **Spring Boot**. It demonstrates integr
   <version>9.2.0</version>
 </dependency>
 ```
+
 ---
 
 ## ⚡ Installation
@@ -73,7 +74,57 @@ Or run packaged JAR:
 java -jar target/project-name-0.0.1-SNAPSHOT.jar
 ```
 The server will start at: http://localhost:9091
+
 ---
+
 ## ⚙️ Configuration
 All configuration are in ```bash src/main/resources/application.properties ```
+Example:
+```properties
+server.port=9091
 
+spring.datasource.url=jdbc:postgresql://localhost:5432/mydb
+spring.datasource.username=myuser
+spring.datasource.password=mypass
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+spring.security.oauth2.resourceserver.jwt.issuer-uri=https://your-auth-server.com/realms/myrealm
+
+firebase.service-account-file=classpath:firebase-service-account.json
+```
+
+---
+
+## 🐳 Docker Support
+```dockerfile
+FROM openjdk:22
+
+WORKDIR /app
+
+COPY target/taskmanagementsystem-0.0.1-SNAPSHOT.jar app.jar
+
+EXPOSE 9090
+
+ENTRYPOINT [ "java", "-jar", "app.jar" ]
+```
+Build Docker images: ```bash docker build -t spring-boot-server . ```
+Run container: ```bash docker run -p 9091:9091 spring-boot-server ```
+
+---
+
+## 🧪 Testing
+Run tests: ```bash mvn test```
+
+---
+
+## 📂 Project Structure
+```bash
+project-name/
+├── src/main/java/...    # Source code
+├── src/main/resources/  # Config files (application.properties, firebase key, etc.)
+├── src/test/java/...    # Tests
+├── pom.xml              # Maven configuration
+├── Dockerfile           # Container configuration
+└── README.md            # Documentation
+```
