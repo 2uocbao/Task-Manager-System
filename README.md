@@ -54,7 +54,7 @@ This project is a RESTful API built with **Spring Boot**. It demonstrates integr
 ```
 ---
 
-##⚡Installation
+## ⚡ Installation
 Clone the repository:
 ```bash
 git clone https://github.com/username/project-name.git
@@ -75,5 +75,5 @@ java -jar target/project-name-0.0.1-SNAPSHOT.jar
 The server will start at: http://localhost:9091
 ---
 ## ⚙️ Configuration
-All configuration are in ```bash src/main/resources/application.yml ```
+All configuration are in ```bash src/main/resources/application.properties ```
 
