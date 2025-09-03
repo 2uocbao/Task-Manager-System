@@ -27,5 +27,5 @@ This project is a RESTful API built with **Spring Boot**. It serves as a backend
 
 Clone the repository:
 ```bash
-git clone https://github.com/username/project-name.git
+git clone [https://github.com/username/project-name.git](https://github.com/2uocbao/Task-Manager-System.git)
 cd project-name
