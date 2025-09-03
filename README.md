@@ -8,16 +8,18 @@ This project is a RESTful API built with **Spring Boot**. It serves as a backend
 - REST API endpoints (CRUD operations)
 - Spring Data JPA with Hibernate for database integration
 - Profiles for development, testing, and production
-- Configurable via `application.yml`
+- Configurable via `pom.yml`
 - Docker support
 
 ---
 
 ## 📦 Requirements
-- Java 17+
+- Java 22+
 - Maven 3.8+
 - PostgreSQL/MySQL (or any supported database)
 - (Optional) Docker
+- Redis
+- 
 
 ---
 
