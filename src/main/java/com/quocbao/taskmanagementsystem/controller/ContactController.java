@@ -42,28 +42,28 @@ public class ContactController {
 		return new DataResponse(HttpStatus.OK.value(), null, "Add request successful");
 	}
 
-	@PutMapping("/users/{userId}/contacts/{contactId}")
-	public DataResponse updateContact(@PathVariable String userId, @PathVariable String contactId,
+	@PutMapping("/contacts/{contactId}")
+	public DataResponse updateContact(@PathVariable String contactId,
 			@RequestBody UpdateContactRequest updateContactRequest) {
-		contactService.updateContact(userId, contactId, updateContactRequest);
+		contactService.updateContact(contactId, updateContactRequest);
 		return new DataResponse(HttpStatus.OK.value(), null, "Update request successful");
 	}
 
-	@DeleteMapping("/users/{userId}/contacts/{contactId}")
-	public DataResponse deleteContact(@PathVariable String userId, @PathVariable String contactId) {
-		contactService.deleteContact(userId, contactId);
+	@DeleteMapping("/contacts/{contactId}")
+	public DataResponse deleteContact(@PathVariable String contactId) {
+		contactService.deleteContact(contactId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Success");
 	}
 
-	@GetMapping("/users/{userId}/contacts")
-	public PaginationResponse<ContactResponse> getContacts(@PathVariable String userId, @RequestParam String status,
+	@GetMapping("/contacts")
+	public PaginationResponse<ContactResponse> getContacts(@RequestParam String status,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
 
 		Direction direction = Direction.ASC;
 
 		Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "createdAt"));
 
-		Page<ContactResponse> contactResponse = contactService.listContactByStatus(userId, status, pageable);
+		Page<ContactResponse> contactResponse = contactService.listContactByStatus(status, pageable);
 
 		List<ContactResponse> contactResponses = contactResponse.stream().toList();
 
@@ -73,12 +73,12 @@ public class ContactController {
 				contactResponse.getSort().isEmpty());
 	}
 
-	@GetMapping("/users/{userId}/contacts/searchWith")
-	public PaginationResponse<ContactResponse> searchContacts(@PathVariable String userId, @RequestParam String status,
-			@RequestParam String keySearch, @RequestParam(defaultValue = "0") int page,
+	@GetMapping("/contacts/searchs")
+	public PaginationResponse<ContactResponse> searchContacts(@RequestParam String status,
+			@RequestParam String keyword, @RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size) {
 		Pageable pageable = PageRequest.of(page, size);
-		Page<ContactResponse> contactResponse = contactService.searchContact(userId, status, keySearch, pageable);
+		Page<ContactResponse> contactResponse = contactService.searchContact(status, keyword, pageable);
 
 		List<ContactResponse> contactResponseList = contactResponse.stream().toList();
 
@@ -88,5 +88,19 @@ public class ContactController {
 				contactResponse.getSort().isSorted(), contactResponse.getSort().isUnsorted(),
 				contactResponse.getSort().isEmpty());
 	}
+	
+	@GetMapping("/teams/{teamId}/available-users/searchs")
+	public PaginationResponse<ContactResponse> searchUserAddToTeam(@PathVariable String teamId,
+			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
+			@RequestParam(required = false) String keyword) {
+		Pageable pageable = PageRequest.of(page, size);
+		Page<ContactResponse> memberResponse = contactService.searchAddMember(teamId, keyword, pageable);
+		List<ContactResponse> memberResponses = memberResponse.getContent().stream().toList();
+		PaginationResponse<ContactResponse> paginationResponse = new PaginationResponse<>(HttpStatus.OK,
+				memberResponses, memberResponse.getPageable().getPageNumber(), memberResponse.getSize(),
+				memberResponse.getTotalElements(), memberResponse.getTotalPages(), memberResponse.getSort().isSorted(),
+				memberResponse.getSort().isUnsorted(), memberResponse.getSort().isEmpty());
+		return paginationResponse;
+	} 
 
 }
