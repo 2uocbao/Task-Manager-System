@@ -1,7 +1,9 @@
 package com.quocbao.taskmanagementsystem.entity;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.Set;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -11,6 +13,7 @@ import com.quocbao.taskmanagementsystem.common.PriorityEnum;
 import com.quocbao.taskmanagementsystem.common.StatusEnum;
 import com.quocbao.taskmanagementsystem.payload.request.TaskRequest;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,7 +24,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
@@ -40,10 +43,11 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Task implements Serializable {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+    /**
+     * 
+     */
+    @Serial
+    private static final long serialVersionUID = 1L;
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -63,7 +67,7 @@ public class Task implements Serializable {
 	@Column(name = "status")
 	@Enumerated(EnumType.STRING)
 	private StatusEnum status;
-	
+
 	@Column(name = "start_date")
 	private Timestamp startDate;
 
@@ -80,14 +84,23 @@ public class Task implements Serializable {
 	@Column(name = "due_at")
 	private Timestamp dueAt;
 
-	@OneToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "assign_to")
-	private User assignTo;
-
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id")
+	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "team_id", nullable = false)
+	private Team team;
+	
+	@OneToMany(cascade = CascadeType.REMOVE, mappedBy = "task")
+	private Set<Comment> comments;
+	
+	@OneToMany(cascade = CascadeType.REMOVE, mappedBy = "task")
+	private Set<Report> report;
+	
+	@OneToMany(cascade = CascadeType.REMOVE, mappedBy = "task")
+	private Set<TaskAssignment> taskAssignments;
+	
 	@PrePersist
 	void preInsert() {
 		if (this.status == null) {
@@ -109,7 +122,8 @@ public class Task implements Serializable {
 	public Task updateTask(TaskRequest taskRequest) {
 		this.title = taskRequest.getTitle();
 		this.description = taskRequest.getDescription();
-		this.startDate = taskRequest.getStartDate() != null ? ConvertData.toTimestamp(taskRequest.getStartDate()) : null;
+		this.startDate = taskRequest.getStartDate() != null ? ConvertData.toTimestamp(taskRequest.getStartDate())
+				: null;
 		this.dueAt = ConvertData.toTimestamp(taskRequest.getDueAt());
 		this.priority = PriorityEnum.valueOf(taskRequest.getPriority());
 		this.status = StatusEnum.valueOf(taskRequest.getStatus());
