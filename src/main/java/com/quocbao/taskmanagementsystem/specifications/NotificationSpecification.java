@@ -11,11 +11,14 @@ public class NotificationSpecification {
 
 	}
 
-	public static Specification<Notification> getNotificationsByUserId(long userId) {
+	public static Specification<Notification> getNotificationsByReceiverId(Long userId) {
 		return (root, _, criteriaBuilder) -> criteriaBuilder.equal(root.get(Notification_.receiverId), userId);
 	}
-	
-	
+
+	public static Specification<Notification> getNotificationsByContentId(Long contentId) {
+		return (root, _, criteriaBuilder) -> criteriaBuilder.equal(root.get(Notification_.contentId), contentId);
+	}
+
 	public static Specification<Notification> getNotificationByType(String type) {
 		return (root, _, criteriaBuilder) -> criteriaBuilder.equal(root.get(Notification_.type), type);
 	}
