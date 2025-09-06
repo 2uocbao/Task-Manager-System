@@ -1,11 +1,8 @@
 package com.quocbao.taskmanagementsystem.serviceimpl;
 
-import java.util.Optional;
-
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.common.MethodGeneral;
@@ -13,16 +10,16 @@ import com.quocbao.taskmanagementsystem.common.NotificationType;
 import com.quocbao.taskmanagementsystem.common.StatusEnum;
 import com.quocbao.taskmanagementsystem.entity.Contacts;
 import com.quocbao.taskmanagementsystem.entity.User;
-import com.quocbao.taskmanagementsystem.events.ContactEvent;
+import com.quocbao.taskmanagementsystem.events.NotifiEvent.ContactEvent;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
 import com.quocbao.taskmanagementsystem.payload.request.ContactRequest;
 import com.quocbao.taskmanagementsystem.payload.request.UpdateContactRequest;
 import com.quocbao.taskmanagementsystem.payload.response.ContactResponse;
 import com.quocbao.taskmanagementsystem.repository.ContactRepository;
 import com.quocbao.taskmanagementsystem.service.ContactService;
+import com.quocbao.taskmanagementsystem.service.utils.AuthenticationService;
 import com.quocbao.taskmanagementsystem.service.utils.NotifiHelperService;
 import com.quocbao.taskmanagementsystem.service.utils.UserHelperService;
-import com.quocbao.taskmanagementsystem.specifications.ContactSpecification;
 
 @Service
 public class ContactServiceImpl implements ContactService {
@@ -33,6 +30,8 @@ public class ContactServiceImpl implements ContactService {
 
 	private final UserHelperService userHelperService;
 
+	private final AuthenticationService authService;
+
 	private final IdEncoder idEncoder;
 
 	private final MethodGeneral methodGeneral;
@@ -40,11 +39,12 @@ public class ContactServiceImpl implements ContactService {
 	private final ApplicationEventPublisher applicationEventPublisher;
 
 	public ContactServiceImpl(ContactRepository contactRepository, NotifiHelperService notifiHelperService,
-			UserHelperService userHelperService, IdEncoder idEncoder, MethodGeneral methodGeneral,
-			ApplicationEventPublisher applicationEventPublisher) {
+			UserHelperService userHelperService, AuthenticationService authService, IdEncoder idEncoder,
+			MethodGeneral methodGeneral, ApplicationEventPublisher applicationEventPublisher) {
 		this.contactRepository = contactRepository;
 		this.notifiHelperService = notifiHelperService;
 		this.userHelperService = userHelperService;
+		this.authService = authService;
 		this.idEncoder = idEncoder;
 		this.methodGeneral = methodGeneral;
 		this.applicationEventPublisher = applicationEventPublisher;
@@ -52,85 +52,110 @@ public class ContactServiceImpl implements ContactService {
 
 	@Override
 	public void createContact(ContactRequest contactRequest) {
-		if (contactRepository.isConnected(idEncoder.decode(contactRequest.getFromUser()),
-				idEncoder.decode(contactRequest.getToUser()))) {
+		Long currentUserId = authService.getUserIdInContext();
+
+		Long toUserId = idEncoder.decode(contactRequest.getToUser());
+		Boolean isConnected = contactRepository.isConnected(currentUserId,
+				idEncoder.decode(contactRequest.getToUser()));
+		if (isConnected || currentUserId == toUserId) {
 			return;
 		}
-		userHelperService.userExist(contactRequest.getToUser()).ifPresentOrElse(user -> {
-			Contacts contacts = Contacts.builder()
-					.user(User.builder().id(idEncoder.decode(contactRequest.getFromUser())).build()).friendId(user)
-					.statusEnum(StatusEnum.REQUESTED).build();
+		if (userHelperService.isUserExist(currentUserId)) {
+			User fromUser = User.builder().id(currentUserId).build();
+			User toUser = userHelperService.getUser(toUserId).get();
+			Contacts contacts = Contacts.builder().user(fromUser).friendId(toUser).statusEnum(StatusEnum.REQUESTED)
+					.build();
 			Contacts contact = contactRepository.save(contacts);
-			String senderName = Optional.ofNullable(user.getFirstName()).orElse("") + " "
-					+ Optional.ofNullable(user.getLastName()).orElse("");
-			applicationEventPublisher.publishEvent(new ContactEvent(idEncoder.decode(contactRequest.getFromUser()),
-					user.getId(), contact.getId(), senderName));
-		}, () -> new ResourceNotFoundException("Can not add contact"));
 
-	}
-
-	@Override
-	public void updateContact(String userId, String contactId, UpdateContactRequest updateContactRequest) {
-		Contacts contacts = contactRepository.findById(idEncoder.decode(contactId))
-				.orElseThrow(() -> new ResourceNotFoundException("Contact not found"));
-		methodGeneral.validatePermission(idEncoder.decode(userId), contacts.getFriendId().getId());
-		contacts.setStatusEnum(StatusEnum.valueOf(updateContactRequest.getStatus()));
-		notifiHelperService.updateNotifi(idEncoder.decode(contactId), NotificationType.CONTACT.toString());
-		contactRepository.save(contacts);
-	}
-
-	@Override
-	public void deleteContact(String userId, String id) {
-		Contacts contacts = contactRepository.findById(idEncoder.decode(id))
-				.orElseThrow(() -> new ResourceNotFoundException("Contact not found"));
-		methodGeneral.havePermission(idEncoder.decode(userId), contacts.getUser().getId(),
-				contacts.getFriendId().getId());
-		notifiHelperService.deleteNotification(contacts.getId(), NotificationType.CONTACT.toString());
-		contactRepository.delete(contacts);
-	}
-
-	@Override
-	public Page<ContactResponse> listContactByStatus(String userId, String status, Pageable pageable) {
-		Specification<Contacts> specificationBase = null;
-		if ("RECEIVED".equals(status)) {
-			status = "REQUESTED";
-			specificationBase = ContactSpecification.findContactReceive(idEncoder.decode(userId));
-		} else if ("ACCEPTED".equals(status)) {
-			specificationBase = ContactSpecification.findContactReceive(idEncoder.decode(userId))
-					.or(ContactSpecification.findContactByUserId(idEncoder.decode(userId)));
+			applicationEventPublisher
+					.publishEvent(new ContactEvent(currentUserId, idEncoder.decode(contactRequest.getToUser()),
+							contact.getId(), contactRequest.getSenderName(), NotificationType.CONTACT.toString(),
+							toUser.getLanguage(), toUser.getToken() == null ? null : toUser.getToken()));
 
 		} else {
-			specificationBase = ContactSpecification.findContactByUserId(idEncoder.decode(userId));
+			throw new ResourceNotFoundException("Can not add contact");
 		}
-		Specification<Contacts> specification = Specification.where(specificationBase)
-				.and(ContactSpecification.findContactByStatus(status));
-
-		Page<Contacts> contacts = contactRepository.findAll(specification, pageable);
-
-		Page<ContactResponse> contactResponse = contacts.map(contact -> {
-			if (contact.getUser().getId() == idEncoder.decode(userId)) {
-				return new ContactResponse(idEncoder.endcode(contact.getId()),
-						idEncoder.endcode(contact.getFriendId().getId()), contact.getFriendId().getFirstName(),
-						contact.getFriendId().getLastName(), contact.getFriendId().getEmail(),
-						contact.getFriendId().getImage(), contact.getStatusEnum().toString());
-			}
-			return new ContactResponse(idEncoder.endcode(contact.getId()), idEncoder.endcode(contact.getUser().getId()),
-					contact.getUser().getFirstName(), contact.getUser().getLastName(), contact.getUser().getEmail(),
-					contact.getUser().getImage(), contact.getStatusEnum().toString());
-		});
-
-		return contactResponse;
 	}
 
 	@Override
-	public Page<ContactResponse> searchContact(String userId, String status, String keySearch, Pageable pageable) {
+	public void updateContact(String contactId, UpdateContactRequest updateContactRequest) {
+		Long currentUserId = authService.getUserIdInContext();
+		contactRepository.findById(idEncoder.decode(contactId)).ifPresentOrElse(contact -> {
+			methodGeneral.validatePermission(currentUserId, contact.getFriendId().getId());
+			contact.setStatusEnum(StatusEnum.valueOf(updateContactRequest.getStatus()));
+			notifiHelperService.deleteNotification(contact.getId(), NotificationType.CONTACT.toString());
+			contactRepository.save(contact);
+			userHelperService.getUser(idEncoder.decode(updateContactRequest.getToUser())).ifPresent(user -> {
+				applicationEventPublisher.publishEvent(new ContactEvent(currentUserId,
+						idEncoder.decode(updateContactRequest.getToUser()), contact.getId(),
+						updateContactRequest.getSenderName(), NotificationType.CONTACTACEPT.toString(),
+						user.getLanguage(), user.getToken() == null ? null : user.getToken()));
+			});
+
+		}, () -> new ResourceNotFoundException("Contact not found"));
+	}
+
+	@Override
+	public void deleteContact(String id) {
+		Long currentUserId = authService.getUserIdInContext();
+		contactRepository.findById(idEncoder.decode(id)).ifPresentOrElse(contact -> {
+			methodGeneral.havePermission(currentUserId, contact.getUser().getId(), contact.getFriendId().getId());
+			notifiHelperService.deleteNotification(contact.getId(), NotificationType.CONTACT.toString());
+			contactRepository.delete(contact);
+
+		}, () -> new ResourceNotFoundException("Contact not found"));
+
+	}
+
+	@Override
+	public Page<ContactResponse> listContactByStatus(String status, Pageable pageable) {
+		Long currentUserId = authService.getUserIdInContext();
+		try {
+			StatusEnum.valueOf(status);
+		} catch (Exception e) {
+			throw new ResourceNotFoundException("Status invalid");
+		}
+
+		if ("RECEIVED".equals(status)) {
+			status = "REQUESTED";
+			return contactRepository.getContactsByReceiver(currentUserId, StatusEnum.REQUESTED, pageable)
+					.map(contact -> {
+						return new ContactResponse(idEncoder.encode(contact.getId()),
+								idEncoder.encode(contact.getFriendId()), contact.getFirstName(), contact.getLastName(),
+								contact.getEmail(), contact.getImage(), contact.getStatus());
+					});
+		} else if ("ACCEPTED".equals(status)) {
+			return contactRepository.getContactsAccepted(currentUserId, StatusEnum.ACCEPTED, pageable).map(contact -> {
+				return new ContactResponse(idEncoder.encode(contact.getId()), idEncoder.encode(contact.getFriendId()),
+						contact.getFirstName(), contact.getLastName(), contact.getEmail(), contact.getImage(),
+						contact.getStatus());
+			});
+		}
+		return contactRepository.getContactRequested(currentUserId, StatusEnum.REQUESTED, pageable).map(contact -> {
+			return new ContactResponse(idEncoder.encode(contact.getId()), idEncoder.encode(contact.getFriendId()),
+					contact.getFirstName(), contact.getLastName(), contact.getEmail(), contact.getImage(),
+					contact.getStatus());
+		});
+	}
+
+	@Override
+	public Page<ContactResponse> searchContact(String status, String keyword, Pageable pageable) {
+		Long currentUserId = authService.getUserIdInContext();
 		if ("RECEIVED".equals(status)) {
 			status = "REQUESTED";
 		}
-		return contactRepository
-				.searchContact(idEncoder.decode(userId), StatusEnum.valueOf(status), keySearch, pageable)
-				.map(t -> new ContactResponse(idEncoder.endcode(t.getId()), idEncoder.endcode(t.getUserId()),
+		return contactRepository.searchContact(currentUserId, StatusEnum.valueOf(status), keyword, pageable)
+				.map(t -> new ContactResponse(idEncoder.encode(t.getId()), idEncoder.encode(t.getUserId()),
 						t.getFirstName(), t.getLastName(), t.getEmail(), t.getImage(), t.getStatus()));
 	}
 
+	@Override
+	public Page<ContactResponse> searchAddMember(String teamId, String keyword, Pageable pageable) {
+		Long currentUserId = authService.getUserIdInContext();
+		return contactRepository.searchForAddToTeam(currentUserId, idEncoder.decode(teamId), keyword, pageable)
+				.map(t -> {
+					return new ContactResponse(teamId, idEncoder.encode(t.getUserId()), t.getFirstName(),
+							t.getLastName(), t.getEmail(), t.getImage(), null);
+				});
+	}
 }
