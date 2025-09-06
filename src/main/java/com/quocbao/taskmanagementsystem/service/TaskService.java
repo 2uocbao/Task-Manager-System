@@ -1,31 +1,32 @@
 package com.quocbao.taskmanagementsystem.service;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import com.quocbao.taskmanagementsystem.payload.request.TaskRequest;
 import com.quocbao.taskmanagementsystem.payload.response.TaskResponse;
+import com.quocbao.taskmanagementsystem.payload.response.TaskStatusResponse;
 
 public interface TaskService {
 
-	public TaskResponse createTask(TaskRequest taskRequest);
+	public TaskResponse createTask(String teamId, TaskRequest taskRequest);
 
-	public TaskResponse getTask(String userId, String taskId);
+	public TaskResponse getTask(String taskId);
 
 	public TaskResponse updateTask(String taskId, TaskRequest taskRequest);
 
-	public String updateStatus(String taskId, String userId, TaskRequest taskRequest);
+	public TaskResponse updateStatus(String taskId, TaskRequest taskRequest);
 
-	public String updatePriority(String taskId, String userId, TaskRequest taskRequest);
+	public TaskResponse updatePriority(String taskId, TaskRequest taskRequest);
 
-	public String deleteTask(String taskId, String userId);
+	public void deleteTask(String taskId);
 
-	public Page<TaskResponse> getTasks(String userId, String status, String priority, String startDate, String endDate,
-			Boolean assign, Pageable pageable);
+	public List<TaskStatusResponse> getTaskSummaryInTeam(String teamId);
 
-	public TaskResponse addUser(String taskId, String assigneer, String assignee);
+	public Page<TaskResponse> getTasks(String teamId, String status, String priority, String startDate,
+			String endDate, Pageable pageable);
 
-	public TaskResponse removeUser(String taskId, String assigneer, String assignee);
-
-	public Page<TaskResponse> searchTasks(String userId, String keySearch, Boolean type, Pageable pageable);
+	public Page<TaskResponse> searchTasks(String keyword, Pageable pageable);
 }
