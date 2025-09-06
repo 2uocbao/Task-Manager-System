@@ -19,8 +19,7 @@ public class ContactSpecification {
 	public static Specification<Contacts> findContactByStatus(String status) {
 		return (root, _, criteriaBuilder) -> criteriaBuilder.equal(root.get(Contacts_.statusEnum), status);
 	}
-	
-	
+
 	public static Specification<Contacts> findContactReceive(Long userId) {
 		return (root, _, criteriaBuilder) -> criteriaBuilder.equal(root.get(Contacts_.friendId).get(User_.id), userId);
 	}
