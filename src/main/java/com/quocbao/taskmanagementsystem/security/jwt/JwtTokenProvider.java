@@ -7,6 +7,7 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.entity.User;
 
 import io.jsonwebtoken.Claims;
@@ -37,7 +38,8 @@ public class JwtTokenProvider {
 	}
 
 	public String generateToken(User user) {
-		return Jwts.builder().subject(user.getEmail()).issuedAt(new Date(System.currentTimeMillis()))
+		return Jwts.builder().subject(new IdEncoder().encode(user.getId()))
+				.issuedAt(new Date(System.currentTimeMillis()))
 				.expiration(new Date(System.currentTimeMillis() + jwtExp)).signWith(getSignInKey(), Jwts.SIG.HS256)
 				.compact();
 
@@ -47,12 +49,12 @@ public class JwtTokenProvider {
 		return Jwts.parser().verifyWith(getSignInKey()).build().parseSignedClaims(token).getPayload();
 	}
 
-	public String extractEmail(String token) {
+	public String extractUserId(String token) {
 		return extractPayload(token).getSubject();
 	}
 
 	public Boolean isTokenValid(String token, User user) {
-		return (extractEmail(token).equals(user.getEmail()) && !isTokenExpiration(token));
+		return (extractUserId(token).equals(new IdEncoder().encode(user.getId())) && !isTokenExpiration(token));
 	}
 
 	private Boolean isTokenExpiration(String token) {
@@ -60,7 +62,8 @@ public class JwtTokenProvider {
 	}
 
 	public String generateRefreshToken(User user) {
-		return Jwts.builder().subject(user.getEmail()).issuedAt(new Date(System.currentTimeMillis()))
+		return Jwts.builder().subject(new IdEncoder().encode(user.getId()))
+				.issuedAt(new Date(System.currentTimeMillis()))
 				.expiration(new Date(System.currentTimeMillis() + jwtRefresh)).signWith(getSignInKey(), Jwts.SIG.HS256)
 				.compact();
 	}
