@@ -1,15 +1,17 @@
 package com.quocbao.taskmanagementsystem.exception;
 
+import java.io.Serial;
+
 public class JwtExpiredException extends RuntimeException {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+    /**
+     * 
+     */
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-	public JwtExpiredException(String message) {
-		super(message);
-		// TODO Auto-generated constructor stub
-	}
+    public JwtExpiredException(String message) {
+        super(message);
+    }
 
 }
