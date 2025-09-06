@@ -39,10 +39,11 @@ public class SecurityConfig {
 		httpSecurity.csrf(cf -> cf.disable());
 		httpSecurity.anonymous(t -> t.disable());
 		httpSecurity.authorizeHttpRequests(authorize -> authorize
-
-				.requestMatchers("/users/oauth2").permitAll().requestMatchers("/users/refresh-token").permitAll()
-
-				.anyRequest().permitAll()
+				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+				.requestMatchers("/users/oauth2").permitAll()
+				.requestMatchers("/users/refresh-token").permitAll()
+				.requestMatchers("/users/tests").permitAll()
+				.anyRequest().authenticated()
 
 		);
 
