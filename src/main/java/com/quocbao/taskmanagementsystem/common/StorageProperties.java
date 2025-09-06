@@ -7,7 +7,8 @@ public class StorageProperties {
 	/**
 	 * Folder location for storing files
 	 */
-	private String location = "F:\\storeFile";
+	// private String location = "F:\\storeFile";
+	private String location = "/app/storeFile";
 
 	public String getLocation() {
 		return location;
@@ -16,5 +17,5 @@ public class StorageProperties {
 	public void setLocation(String location) {
 		this.location = location;
 	}
-	
+
 }
