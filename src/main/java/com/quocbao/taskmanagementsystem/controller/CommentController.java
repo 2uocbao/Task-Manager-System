@@ -33,17 +33,15 @@ public class CommentController {
 		this.commentService = commentService;
 	}
 
-	@PostMapping("/users/{userId}/tasks/{taskId}/comments")
-	public DataResponse createcomment(@PathVariable String userId, @PathVariable String taskId,
-			@RequestBody CommentRequest commentRequest) {
-		return new DataResponse(HttpStatus.OK.value(), commentService.createComment(userId, taskId, commentRequest),
+	@PostMapping("/tasks/{taskId}/comments")
+	public DataResponse createcomment(@PathVariable String taskId, @RequestBody CommentRequest commentRequest) {
+		return new DataResponse(HttpStatus.OK.value(), commentService.createComment(taskId, commentRequest),
 				"Create successful");
 	}
 
-	@PutMapping("/users/{userId}/comments/{commentId}")
-	public DataResponse updatecomment(@PathVariable String userId, @PathVariable long commentId,
-			@RequestBody CommentRequest commentRequest) {
-		return new DataResponse(HttpStatus.OK.value(), commentService.updateComment(userId, commentId, commentRequest),
+	@PutMapping("/comments/{commentId}")
+	public DataResponse updatecomment(@PathVariable long commentId, @RequestBody CommentRequest commentRequest) {
+		return new DataResponse(HttpStatus.OK.value(), commentService.updateComment(commentId, commentRequest),
 				"Update successful");
 	}
 
@@ -65,9 +63,9 @@ public class CommentController {
 		return paginationResponse;
 	}
 
-	@DeleteMapping("/users/{userId}/comments/{commentId}")
-	public DataResponse deletecomment(@PathVariable String userId, @PathVariable long commentId) {
-		commentService.deleteComment(commentId, userId);
+	@DeleteMapping("/comments/{commentId}")
+	public DataResponse deletecomment(@PathVariable long commentId) {
+		commentService.deleteComment(commentId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Delete Successfull");
 	}
 
