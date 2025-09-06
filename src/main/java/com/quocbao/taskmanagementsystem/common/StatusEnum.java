@@ -1,8 +1,9 @@
 package com.quocbao.taskmanagementsystem.common;
 
 public enum StatusEnum {
-	COMPLETED, PENDING, INPROGRESS, CANCELLED, REPORTED,
+	// Status tasks
+	COMPLETED, PENDING, IN_PROGRESS, CANCELLED,
 
 	// Status contacts
-	ACCEPTED, REQUESTED
+	ACCEPTED, REQUESTED, RECEIVED
 }
