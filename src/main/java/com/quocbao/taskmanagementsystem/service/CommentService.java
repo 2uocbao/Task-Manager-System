@@ -8,11 +8,11 @@ import com.quocbao.taskmanagementsystem.payload.response.CommentResponse;
 
 public interface CommentService {
 
-	public CommentResponse createComment(String userId, String taskId, CommentRequest commentRequest);
+	public CommentResponse createComment(String taskId, CommentRequest commentRequest);
 
-	public CommentResponse updateComment(String userId, long commentId, CommentRequest commentRequest);
+	public CommentResponse updateComment(Long commentId, CommentRequest commentRequest);
 
 	public Page<CommentResponse> getCommentsofTask(String taskId, Pageable pageable);
 
-	public void deleteComment(long commentId, String userId);
+	public void deleteComment(Long commentId);
 }
