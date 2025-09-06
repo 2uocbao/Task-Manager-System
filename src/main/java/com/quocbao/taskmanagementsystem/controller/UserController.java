@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -32,20 +33,19 @@ import io.jsonwebtoken.JwtException;
 public class UserController {
 
 	private final UserService userService;
+
 	private final JwtTokenProvider jwtTokenProvider;
 
 	public UserController(UserService userService, JwtTokenProvider jwtTokenProvider) {
 		this.userService = userService;
 		this.jwtTokenProvider = jwtTokenProvider;
 	}
-	
 
-	@GetMapping("/email")
+	@GetMapping()
 	public DataResponse getUserByEmail(@RequestHeader("Authorization") String authHeader) {
 		String idToken = authHeader.replace("Bearer ", "");
-		String email = jwtTokenProvider.extractEmail(idToken);
-		return new DataResponse(HttpStatus.OK.value(), new UserResponse(userService.getUserByEmail(email)),
-				"Successful");
+		String userId = jwtTokenProvider.extractUserId(idToken);
+		return new DataResponse(HttpStatus.OK.value(), new UserResponse(userService.getUser(userId)), "Successful");
 	}
 
 	@GetMapping("/refresh-token")
@@ -56,20 +56,19 @@ public class UserController {
 			jwtTokenProvider.validationToken(refreshToken);
 		} catch (JwtException e) {
 			throw new JwtExpiredException("JWT token is expired");
-		} 
+		}
 
-		String email = jwtTokenProvider.extractEmail(refreshToken);
-		User user = userService.getUserByEmail(email);
+		String userId = jwtTokenProvider.extractUserId(refreshToken);
+		User user = userService.getUser(userId);
 		newToken = jwtTokenProvider.generateToken(user);
 		return new DataResponse(HttpStatus.OK.value(), new RefreshResponse(newToken), "Successful");
 	}
 
-	@GetMapping("/{userId}")
-	public PaginationResponse<UserResponse> searchUser(@PathVariable String userId,
-			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
-			@RequestParam(required =  false) String keySearch) {
+	@GetMapping("/searchs")
+	public PaginationResponse<UserResponse> searchUser(@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size, @RequestParam(required = false) String keyword) {
 
-		Page<UserResponse> userResponse = userService.searchUser(userId, keySearch, PageRequest.of(page, size));
+		Page<UserResponse> userResponse = userService.searchUser(keyword, PageRequest.of(page, size));
 
 		List<UserResponse> entityModels = userResponse.getContent().stream().toList();
 
@@ -85,10 +84,15 @@ public class UserController {
 	public void addToken(@RequestBody FcmRequest fcmRequest) {
 		userService.addToken(fcmRequest);
 	}
-	
+
+	@DeleteMapping("/remove_fcm_token")
+	public void removeToken() {
+		userService.removeToken();
+	}
+
 	@GetMapping("/{userId}/mentions")
 	public DataResponse getUser(@PathVariable String userId) {
-		return new DataResponse(HttpStatus.OK.value(), userService.getUser(userId), "success");
+		return new DataResponse(HttpStatus.OK.value(), new UserResponse(userService.getUser(userId)), "success");
 	}
-	
+
 }
