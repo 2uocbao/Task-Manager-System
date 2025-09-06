@@ -11,13 +11,13 @@ import com.quocbao.taskmanagementsystem.payload.response.ReportResponse;
 
 public interface ReportService {
 
-	public ReportResponse createReportForFile(MultipartFile file, String userId, String taskId) throws IOException;
+	public ReportResponse createReportForFile(MultipartFile file, String taskId) throws IOException;
 
 	public ReportResponse createReportForLink(ReportRequest reportRequest);
 
-	public void deleteReport(String reportId, String taskId, String userId);
+	public void deleteReport(String reportId, String taskId);
 
 	public List<ReportResponse> getReports(String taskId);
 
-	public Path getFile(String userId, String taskId, String reportId);
+	public Path getFile(String taskId, String reportId);
 }
