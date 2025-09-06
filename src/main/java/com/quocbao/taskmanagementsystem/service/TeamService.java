@@ -13,12 +13,12 @@ public interface TeamService {
 	public TeamResponse createTeam(TeamRequest teamRequest);
 
 	public TeamResponse updateTeam(String teamId, TeamRequest teamRequest);
-	
+
 	public void deleteTeam(String teamId);
 
 	public List<TeamResponse> getTeams();
-	
+
 	public List<TeamResponse> getCustomTeams();
-	
+
 	public Page<TeamResponse> searchTeams(String keyword, Pageable pageable);
 }
