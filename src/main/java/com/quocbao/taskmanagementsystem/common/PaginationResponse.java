@@ -30,6 +30,11 @@ public class PaginationResponse<T> {
 		this.pagination = new Pagination(currentPage, perPage, totalItems, totalPages);
 		this.sort = new Sort(sorted, unsorted, empty);
 	}
+	
+	public PaginationResponse(HttpStatus httpStatus, List<T> data) {
+		this.status = httpStatus.value();
+		this.data = data;
+	}
 
 	@Setter
 	public class Pagination {
