@@ -11,11 +11,14 @@ public interface ContactService {
 
 	public void createContact(ContactRequest contactRequest);
 
-	public void updateContact(String userId, String id, UpdateContactRequest updateContactRequest);
+	public void updateContact(String id, UpdateContactRequest updateContactRequest);
 
-	public void deleteContact(String userId, String id);
+	public void deleteContact(String id);
 
-	public Page<ContactResponse> listContactByStatus(String userId, String status, Pageable pageable);
+	public Page<ContactResponse> listContactByStatus(String status, Pageable pageable);
 
-	public Page<ContactResponse> searchContact(String userId, String status, String keySearch, Pageable pageable);
+	public Page<ContactResponse> searchContact(String status, String keyword, Pageable pageable);
+
+	public Page<ContactResponse> searchAddMember(String teamId, String keyword, Pageable pageable);
+
 }
