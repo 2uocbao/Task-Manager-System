@@ -1,5 +1,6 @@
 package com.quocbao.taskmanagementsystem.entity;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.sql.Timestamp;
 
@@ -26,10 +27,11 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Notification implements Serializable {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+    /**
+     * 
+     */
+    @Serial
+    private static final long serialVersionUID = 1L;
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
