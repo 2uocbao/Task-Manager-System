@@ -46,7 +46,7 @@ public class ReportController {
 	@PostMapping(path = "/reports", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public DataResponse addReportForFile(@RequestParam MultipartFile file, @RequestParam String userId,
 			@RequestParam String taskId) throws IOException {
-		return new DataResponse(HttpStatus.OK.value(), reportService.createReportForFile(file, userId, taskId),
+		return new DataResponse(HttpStatus.OK.value(), reportService.createReportForFile(file, taskId),
 				"Upload report successful");
 	}
 
@@ -58,17 +58,16 @@ public class ReportController {
 		return paginationResponse;
 	}
 
-	@DeleteMapping("/users/{userId}/tasks/{taskId}/reports/{reportId}")
-	public DataResponse deleteReport(@PathVariable String reportId, @PathVariable String userId,
-			@PathVariable String taskId) {
-		reportService.deleteReport(reportId, taskId, userId);
+	@DeleteMapping("/tasks/{taskId}/reports/{reportId}")
+	public DataResponse deleteReport(@PathVariable String reportId, @PathVariable String taskId) {
+		reportService.deleteReport(reportId, taskId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Delete report successful");
 	}
 
-	@GetMapping("/users/{userId}/tasks/{taskId}/reports/{reportId}/download")
-	public ResponseEntity<Resource> downloadFile(@PathVariable String taskId, @PathVariable String userId,
-			@PathVariable String reportId) throws MalformedURLException {
-		Path filePath = reportService.getFile(userId, taskId, reportId).normalize();
+	@GetMapping("/tasks/{taskId}/reports/{reportId}/download")
+	public ResponseEntity<Resource> downloadFile(@PathVariable String taskId, @PathVariable String reportId)
+			throws MalformedURLException {
+		Path filePath = reportService.getFile(taskId, reportId).normalize();
 		if (!Files.exists(filePath)) {
 			return ResponseEntity.notFound().build();
 		}
@@ -79,10 +78,10 @@ public class ReportController {
 				.body(resource);
 	}
 
-	@GetMapping("/users/{userId}/tasks/{taskId}/reports/{reportId}/view")
-	public ResponseEntity<Resource> viewImage(@PathVariable String taskId, @PathVariable String userId,
-			@PathVariable String reportId) throws MalformedURLException {
-		Path filePath = reportService.getFile(userId, taskId, reportId).normalize();
+	@GetMapping("/tasks/{taskId}/reports/{reportId}/view")
+	public ResponseEntity<Resource> viewImage(@PathVariable String taskId, @PathVariable String reportId)
+			throws MalformedURLException {
+		Path filePath = reportService.getFile(taskId, reportId).normalize();
 		if (!Files.exists(filePath)) {
 			return ResponseEntity.notFound().build();
 		}
