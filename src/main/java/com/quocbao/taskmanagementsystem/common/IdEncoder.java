@@ -12,7 +12,7 @@ public class IdEncoder {
 		this.hashids = new Hashids("2uocbao.0106", 6);
 	}
 
-	public String endcode(long id) {
+	public String encode(long id) {
 		return hashids.encode(id);
 	}
 
