@@ -6,9 +6,6 @@ import lombok.Getter;
 
 @Getter
 public class TaskRequest {
-	
-	@JsonProperty("creatorId")
-	private String creatorId;
 
 	@JsonProperty("title")
 	private String title;
@@ -18,13 +15,13 @@ public class TaskRequest {
 
 	@JsonProperty("priority")
 	private String priority;
-	
+
 	@JsonProperty("status")
 	private String status;
-	
+
 	@JsonProperty("start_date")
 	private String startDate;
-	
+
 	@JsonProperty("due_at")
 	private String dueAt;
 }
