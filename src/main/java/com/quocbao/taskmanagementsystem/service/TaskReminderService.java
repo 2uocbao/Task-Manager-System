@@ -7,6 +7,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.common.NotificationType;
 import com.quocbao.taskmanagementsystem.entity.Task;
-import com.quocbao.taskmanagementsystem.events.TaskEvent;
+import com.quocbao.taskmanagementsystem.entity.TaskAssignment;
+import com.quocbao.taskmanagementsystem.events.NotifiEvent.TaskEvent;
+import com.quocbao.taskmanagementsystem.service.utils.TaskAssignmentHelperService;
 import com.quocbao.taskmanagementsystem.service.utils.TaskHelperService;
 
 @Service
@@ -23,16 +26,20 @@ public class TaskReminderService {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TaskReminderService.class);
 
 	private final TaskHelperService taskHelperService;
+	private final TaskAssignmentHelperService taskAssignmentHelperService;
 	private final IdEncoder idEncoder;
 	private final ApplicationEventPublisher applicationEventPublisher;
 
-	public TaskReminderService(TaskHelperService taskHelperService, IdEncoder idEncoder,
+	public TaskReminderService(TaskHelperService taskHelperService,
+			TaskAssignmentHelperService taskAssignmentHelperService, IdEncoder idEncoder,
 			ApplicationEventPublisher applicationEventPublisher) {
 		this.taskHelperService = taskHelperService;
+		this.taskAssignmentHelperService = taskAssignmentHelperService;
 		this.idEncoder = idEncoder;
 		this.applicationEventPublisher = applicationEventPublisher;
 	}
 
+	@Async("eventTaskExecutor")
 	@Scheduled(cron = "0 0 8 * * ?")
 	public void checkUpComingDeadlines() {
 		LocalDateTime currentDate = LocalDateTime.now().toLocalDate().atStartOfDay();
@@ -41,20 +48,29 @@ public class TaskReminderService {
 		List<Task> tasks = taskHelperService.getTaskBetweenDate(Timestamp.valueOf(currentDate),
 				Timestamp.valueOf(endOfDay));
 		tasks.stream().forEach(task -> {
-			if (task.getAssignTo() == null) {
-				pushTaskEvent(task, idEncoder.endcode(task.getAssignTo().getId()), NotificationType.DUEAT.toString());
-				LOGGER.info("Push notification to " + task.getAssignTo().getId());
-
-			} else {
-				pushTaskEvent(task, idEncoder.endcode(task.getAssignTo().getId()), NotificationType.DUEAT.toString());
-				LOGGER.info("Push notification to " + task.getUser().getId());
-			}
+			pushTaskEventForLeader(task);
+			List<TaskAssignment> taskAssignments = taskAssignmentHelperService
+					.getAssignmentsByTaskId(idEncoder.encode(task.getId()));
+			pushTaskEventForMember(task, taskAssignments);
 		});
 	}
 
-	private void pushTaskEvent(Task task, String assignee, String contentType) {
-		applicationEventPublisher.publishEvent(new TaskEvent(task.getId(), null, idEncoder.decode(assignee), "",
-				task.getTitle(), NotificationType.DUEAT.toString()));
+	protected void pushTaskEventForLeader(Task task) {
+		pushTaskEvent(task.getId(), task.getUser().getId(), task.getTitle(), task.getUser().getToken(),
+				task.getUser().getLanguage());
+	}
+
+	protected void pushTaskEventForMember(Task task, List<TaskAssignment> taskAssignments) {
+		taskAssignments.stream().forEach(taskAssign -> {
+			pushTaskEvent(task.getId(), taskAssign.getUser().getId(), task.getTitle(), taskAssign.getUser().getToken(),
+					taskAssign.getUser().getLanguage());
+		});
+	}
+
+	protected void pushTaskEvent(Long taskId, Long userId, String title, String token, String language) {
+		applicationEventPublisher.publishEvent(
+				new TaskEvent(taskId, 0L, userId, null, title, NotificationType.DUEAT.toString(), token, language));
+		LOGGER.info("Push notification to " + userId);
 	}
 
 }
