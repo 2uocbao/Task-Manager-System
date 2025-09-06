@@ -26,12 +26,12 @@ public class ReportResponse {
 
 	@JsonProperty("external_url")
 	private String externalUrl;
-	
+
 	@JsonProperty("created_at")
 	private String createdAt;
 
 	public ReportResponse(Report report) {
-		this.id = new IdEncoder().endcode(report.getId());
+		this.id = new IdEncoder().encode(report.getId());
 		this.type = report.getType().toString();
 		this.fileName = report.getFileName();
 		this.filePath = report.getFilePath();
