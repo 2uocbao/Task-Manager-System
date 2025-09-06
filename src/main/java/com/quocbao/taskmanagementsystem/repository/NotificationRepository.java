@@ -11,26 +11,31 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.quocbao.taskmanagementsystem.entity.Notification;
+
+import jakarta.transaction.Transactional;
 
 @Repository
 public interface NotificationRepository
 		extends JpaRepository<Notification, Long>, JpaSpecificationExecutor<Notification> {
-	
+
 	List<Notification> findAllByReceiverIdAndIsReadFalse(Long userId);
-	
+
 	Notification findByContentIdAndType(Long contentId, String type);
-	
+
 	Boolean existsByReceiverIdAndIsReadIsFalse(Long userId);
-	
+
 	@Modifying
 	@Transactional
 	@Query("DELETE FROM Notification n WHERE n.contentId = :contentId AND n.type = :type")
-	void deleteByReceiverIdOrUserIdAndType(@Param("contentId") Long contentId,
-            @Param("type") String type);
-	
+	void deleteByContentIdAndType(@Param("contentId") Long contentId,
+			@Param("type") String type);
+
+	@Modifying
+	@Query("DELETE FROM Notification n WHERE n.contentId IN :ids AND n.type = :type")
+	void deleteByContentIdsAndType(@Param("ids") List<Long> ids, @Param("type") String type);
+
 	@Query("SELECT "
 			+ "n.id AS id, "
 			+ "n.senderId AS senderId, "
@@ -42,24 +47,40 @@ public interface NotificationRepository
 			+ "u.firstName AS firstName, "
 			+ "u.lastName AS lastName, "
 			+ "u.image AS image, "
-			+ "t.title AS title "
+			+ "t.title AS title, "
+			+ "te.name AS name "
 			+ "FROM Notification n "
 			+ "LEFT JOIN User u ON u.id = n.senderId "
-			+ "LEFT JOIN Task t ON t.id = n.contentId "
+			+ "LEFT JOIN Task t ON t.id = n.contentId AND n.type = 'TASK' "
+			+ "LEFT JOIN Team te ON te.id = n.contentId AND n.type = 'TEAM' "
 			+ "WHERE n.receiverId = :userId AND n.isRead = :status AND (:type = 'ALL' OR n.type = :type) ")
-	Page<NotificationProjections> getNotifications(@Param("userId") Long userId, @Param("type") String type, @Param("status") Boolean status, Pageable pageale);
+	Page<NotificationProjections> getNotifications(@Param("userId") Long userId, @Param("type") String type,
+			@Param("status") Boolean status, Pageable pageale);
+
 	interface NotificationProjections {
 		Long getId();
+
 		Long getSenderId();
+
 		Long getContentId();
+
 		String getImage();
+
 		String getFirstName();
+
 		String getLastName();
-		String getTitleTask();
+
+		String getTitle();
+
+		String getName();
+
 		Boolean getIsRead();
+
 		String getTypeContent();
+
 		Timestamp getCreatedAt();
+
 		String getType();
 	}
-	
+
 }
