@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -46,6 +47,12 @@ public abstract class ConvertData {
 		return fileImage.stream()
 				.anyMatch(t -> imageName.substring(imageName.indexOf(".") + 1, imageName.length()).equals(t));
 
+	}
+
+	public static List<String> convertToList(String listImage) {
+		if (listImage == null || listImage.isBlank())
+			return List.of();
+		return Arrays.stream(listImage.split(",")).map(String::trim).distinct().toList();
 	}
 
 }
