@@ -8,12 +8,15 @@ import com.quocbao.taskmanagementsystem.payload.request.FcmRequest;
 import com.quocbao.taskmanagementsystem.payload.response.UserResponse;
 
 public interface UserService {
+
 	public User getUserByEmail(String email);
 
-	public Page<UserResponse> searchUser(String userId, String keySearch, Pageable pageable);
+	public Page<UserResponse> searchUser(String keyword, Pageable pageable);
 
 	public void addToken(FcmRequest fcmRequest);
 
-	public UserResponse getUser(String userId);
+	public void removeToken();
+
+	public User getUser(String userId);
 
 }
