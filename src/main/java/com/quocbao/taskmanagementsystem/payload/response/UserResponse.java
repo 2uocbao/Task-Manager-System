@@ -32,14 +32,14 @@ public class UserResponse {
 	}
 
 	public UserResponse(User user) {
-		this.id = new IdEncoder().endcode(user.getId());
+		this.id = new IdEncoder().encode(user.getId());
 		this.firstName = user.getFirstName();
 		this.lastName = user.getLastName();
 		this.mention = user.getMention();
 		this.image = user.getImage();
 		this.email = user.getEmail();
 	}
-	
+
 	public UserResponse(String id, String firstName, String lastName, String image, String email) {
 		this.id = id;
 		this.firstName = firstName;
