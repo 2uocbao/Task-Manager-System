@@ -39,21 +39,15 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
 			User user = userRepository.findByEmail(oAuth2User.getEmail());
 
-			// Check if user is null
-			if (user == null) {
-				// Create new user if user does not exist
-				User newUser = User.builder().firstName(oAuth2User.getAttribute("given_name"))
-						.lastName(oAuth2User.getAttribute("family_name")).email(oAuth2User.getAttribute("email"))
-						.mention("@" + oAuth2User.getEmail().split("@")[0]).image(oAuth2User.getAttribute("picture"))
-						.build();
-				user = userRepository.save(newUser);
-			} else {
-				user.setImage(oAuth2User.getAttribute("picture"));
-				user = userRepository.save(user);
-			}
+			User newUser = User.builder().firstName(oAuth2User.getAttribute("given_name"))
+					.lastName(oAuth2User.getAttribute("family_name")).email(oAuth2User.getAttribute("email"))
+					.mention(oAuth2User.getEmail().split("@")[0]).image(oAuth2User.getAttribute("picture"))
+					.build();
+			user = userRepository.save(newUser);
+
 			String token = jwtTokenProvider.generateToken(user);
 			String refresh = jwtTokenProvider.generateRefreshToken(user);
-//			taskflow://users/oauth2?token=
+			// taskflow://users/oauth2?token=
 			response.sendRedirect("taskflow://users/oauth2?token=" + token + "&refresh=" + refresh);
 		}
 
