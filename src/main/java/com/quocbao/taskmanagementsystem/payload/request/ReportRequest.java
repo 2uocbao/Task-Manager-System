@@ -12,5 +12,4 @@ public class ReportRequest {
 
 	@JsonProperty("external_url")
 	private String externalUrl;
-
 }
