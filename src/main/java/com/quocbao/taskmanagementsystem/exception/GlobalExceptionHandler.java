@@ -1,5 +1,7 @@
 package com.quocbao.taskmanagementsystem.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -7,11 +9,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.quocbao.taskmanagementsystem.common.ErrorResponse;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 	@ExceptionHandler(JwtExpiredException.class)
 	public ResponseEntity<?> handleJwtExpired(JwtExpiredException ex) {
@@ -19,6 +20,7 @@ public class GlobalExceptionHandler {
 		errorResponse.setTitle("Jwt token is expired.");
 		errorResponse.setStatus(HttpStatus.UNAUTHORIZED.value());
 		errorResponse.setDetail(ex.getMessage());
+		LOGGER.error(ex.getMessage());
 		return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
 	}
 
@@ -28,42 +30,27 @@ public class GlobalExceptionHandler {
 		errorResponse.setTitle("Resouce Not Found.");
 		errorResponse.setStatus(HttpStatus.NOT_FOUND.value());
 		errorResponse.setDetail(ex.getMessage());
+		LOGGER.error(ex.getMessage());
 		return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-	}
-
-	@ExceptionHandler(ConstraintViolationException.class)
-	public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException ex) {
-		ErrorResponse errorResponse = new ErrorResponse();
-		errorResponse.setTitle("The provided input is not valid.");
-		errorResponse.setStatus(HttpStatus.BAD_REQUEST.value());
-		errorResponse.setDetail(
-				// The exception will be caught in the entity or in the service.
-				ex.getConstraintViolations() == null
-						// If an exception is encountered in the service.
-						// Will get message from ex.getMessage, handle by
-						? ex.getMessage()
-						// If an exception is encountered in the entity, handle by
-						: ex.getConstraintViolations().stream().map(ConstraintViolation::getMessage).toList()
-								.getFirst());
-		return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler(DuplicateException.class)
 	public ResponseEntity<ErrorResponse> handleDuplicateException(DuplicateException ex) {
 		ErrorResponse errorResponse = new ErrorResponse();
 		errorResponse.setTitle("The provided input already exists.");
-		errorResponse.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
+		errorResponse.setStatus(HttpStatus.CONFLICT.value());
 		errorResponse.setDetail(ex.getMessage());
-		return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
+		LOGGER.error(ex.getMessage());
+		return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
 	}
 
-	@ExceptionHandler(UnauthorizedException.class)
-	public ResponseEntity<ErrorResponse> unauthorizatedException(UnauthorizedException ex) {
+	@ExceptionHandler(ForbiddenException.class)
+	public ResponseEntity<ErrorResponse> forbiddenException(ForbiddenException ex) {
 		ErrorResponse errorResponse = new ErrorResponse();
-		errorResponse.setTitle("Unauthorization");
-		errorResponse.setStatus(HttpStatus.BAD_REQUEST.value());
+		errorResponse.setTitle("The request do not access");
+		errorResponse.setStatus(HttpStatus.FORBIDDEN.value());
 		errorResponse.setDetail(ex.getMessage());
-		return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-
+		LOGGER.error(ex.getMessage());
+		return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
 	}
 }
