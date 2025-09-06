@@ -29,13 +29,13 @@ public class NotificationController {
 		this.notificationService = notificationService;
 	}
 
-	@GetMapping("/users/{userId}/notifications")
-	public PaginationResponse<NotifiResponse> getNotificationsByUserId(@PathVariable String userId,
-			@RequestParam(defaultValue = "ALL") String type, @RequestParam(defaultValue = "false") Boolean status,
-			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
-		
+	@GetMapping("/notifications")
+	public PaginationResponse<NotifiResponse> getNotificationsByUserId(@RequestParam(defaultValue = "ALL") String type,
+			@RequestParam(defaultValue = "false") Boolean status, @RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+
 		Direction direction = Direction.fromString(Direction.DESC.toString());
-		Page<NotifiResponse> notifications = notificationService.getNotifications(userId, type, status,
+		Page<NotifiResponse> notifications = notificationService.getNotifications(type, status,
 				PageRequest.of(page, size, Sort.by(direction, "createdAt")));
 
 		List<NotifiResponse> entityModels = notifications.getContent().stream().toList();
@@ -48,20 +48,20 @@ public class NotificationController {
 		return paginationResponse;
 	}
 
-	@PutMapping("/users/{userId}/notifications")
-	public DataResponse updateStatusAll(@PathVariable String userId) {
-		notificationService.updateStatusAll(userId);
+	@PutMapping("/notifications")
+	public DataResponse updateStatusAll() {
+		notificationService.updateStatusAll();
 		return new DataResponse(HttpStatus.OK.value(), null, "Success");
 	}
-	
-	@PutMapping("/users/{userId}/notifications/{notificationId}")
-	public DataResponse updateStatus(@PathVariable String userId, @PathVariable Long notificationId) {
-		notificationService.updateStatusNotification(userId, notificationId);
+
+	@PutMapping("/notifications/{notificationId}")
+	public DataResponse updateStatus(@PathVariable Long notificationId) {
+		notificationService.updateStatusNotification(notificationId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Success");
 	}
-	
-	@GetMapping("/users/{userId}/notifications/unread")
-	public DataResponse haveUnRead(@PathVariable String userId) {
-		return new DataResponse(HttpStatus.OK.value(), notificationService.haveUnRead(userId), "Success");
+
+	@GetMapping("/notifications/unread")
+	public DataResponse haveUnRead() {
+		return new DataResponse(HttpStatus.OK.value(), notificationService.haveUnRead(), "Success");
 	}
 }
