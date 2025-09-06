@@ -1,11 +1,13 @@
 package com.quocbao.taskmanagementsystem.service.utils;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
 import com.quocbao.taskmanagementsystem.common.NotificationType;
 import com.quocbao.taskmanagementsystem.repository.NotificationRepository;
+
 
 @Service
 public class NotifiHelperService {
@@ -17,7 +19,11 @@ public class NotifiHelperService {
 	}
 
 	public void deleteNotification(Long contentId, String type) {
-		notificationRepository.deleteByReceiverIdOrUserIdAndType(contentId, type);
+		notificationRepository.deleteByContentIdAndType(contentId, type);
+	}
+	
+	public void deleteByContentIdsAndType(List<Long> contentIds, String type) {
+		notificationRepository.deleteByContentIdsAndType(contentIds, type);
 	}
 
 	public void updateNotifi(Long contentId, String type) {
