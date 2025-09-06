@@ -2,9 +2,10 @@ package com.quocbao.taskmanagementsystem.security.jwt;
 
 import java.io.IOException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,6 +23,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+	static final Logger LOGGER = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
 	private final JwtTokenProvider jwtTokenProvider;
 	private final UserService userService;
 
@@ -36,18 +40,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		try {
 
 			String authHeader = request.getHeader("Authorization");
-			String username = null;
+			String userId = null;
 			String jwt = null;
 			if (authHeader != null && authHeader.startsWith("Bearer ")) {
 				jwt = authHeader.substring(7);
 				if (StringUtils.hasText(jwt) && Boolean.TRUE.equals(jwtTokenProvider.validationToken(jwt))) {
-					username = jwtTokenProvider.extractEmail(jwt);
-					User user = userService.getUserByEmail(username);
+					userId = jwtTokenProvider.extractUserId(jwt);
+					User user = userService.getUser(userId);
 					if (Boolean.TRUE.equals(jwtTokenProvider.isTokenValid(jwt, user))) {
 						UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
 								user, null, null);
-						usernamePasswordAuthenticationToken
-								.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 						SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
 					}
 				}
@@ -55,14 +57,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			filterChain.doFilter(request, response);
 		} catch (ExpiredJwtException ex) {
 			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
-	        response.setContentType("application/json");
-	        response.setCharacterEncoding("UTF-8");
-	        response.getWriter().write("{\"error\": \"JWT token is expired\"}");
-		} catch(JwtException ex) {
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST); // 400
-	        response.setContentType("application/json");
-	        response.setCharacterEncoding("UTF-8");
-	        response.getWriter().write("{\"error\": \"JWT token is expired\"}");
+			response.setContentType("application/json");
+			response.setCharacterEncoding("UTF-8");
+			response.getWriter().write("{\"error\": \"JWT token is expired\"}");
+		} catch (JwtException ex) {
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+			response.setContentType("application/json");
+			response.setCharacterEncoding("UTF-8");
+			response.getWriter().write("{\"error\": \"JWT token is expired\"}");
 		}
 	}
 }
