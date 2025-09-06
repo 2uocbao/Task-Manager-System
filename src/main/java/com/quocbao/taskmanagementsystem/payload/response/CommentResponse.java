@@ -16,7 +16,7 @@ public class CommentResponse {
 	@JsonProperty("id")
 	private long id;
 
-	@JsonProperty("creatorId")
+	@JsonProperty("creator_id")
 	private String creatorId;
 
 	@JsonProperty("username")
