@@ -1,9 +1,6 @@
 package com.quocbao.taskmanagementsystem.serviceimpl;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -12,12 +9,9 @@ import org.springframework.stereotype.Service;
 import com.quocbao.taskmanagementsystem.common.ConvertData;
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.common.MethodGeneral;
-import com.quocbao.taskmanagementsystem.common.NotificationType;
 import com.quocbao.taskmanagementsystem.common.StatusEnum;
-import com.quocbao.taskmanagementsystem.entity.Task;
 import com.quocbao.taskmanagementsystem.entity.Team;
 import com.quocbao.taskmanagementsystem.entity.User;
-import com.quocbao.taskmanagementsystem.events.DeleteEvent.ReportDeletedEvent;
 import com.quocbao.taskmanagementsystem.exception.DuplicateException;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
 import com.quocbao.taskmanagementsystem.payload.request.TeamRequest;
@@ -25,12 +19,9 @@ import com.quocbao.taskmanagementsystem.payload.response.TeamResponse;
 import com.quocbao.taskmanagementsystem.repository.TeamRepository;
 import com.quocbao.taskmanagementsystem.service.TeamService;
 import com.quocbao.taskmanagementsystem.service.utils.AuthenticationService;
-import com.quocbao.taskmanagementsystem.service.utils.NotifiHelperService;
 import com.quocbao.taskmanagementsystem.service.utils.TaskHelperService;
 import com.quocbao.taskmanagementsystem.service.utils.UserHelperService;
 import com.quocbao.taskmanagementsystem.specifications.TeamSpecification;
-
-import jakarta.transaction.Transactional;
 
 @Service
 public class TeamServiceImpl implements TeamService {
@@ -41,10 +32,6 @@ public class TeamServiceImpl implements TeamService {
 
 	private final TaskHelperService taskHelperService;
 
-	private final NotifiHelperService notifiHelperService;
-
-	private final ApplicationEventPublisher applicationEventPublisher;
-
 	private final AuthenticationService authService;
 
 	private final MethodGeneral methodGeneral;
@@ -52,14 +39,11 @@ public class TeamServiceImpl implements TeamService {
 	private final IdEncoder idEncoder;
 
 	public TeamServiceImpl(TeamRepository teamRepository, UserHelperService userHelperService,
-			TaskHelperService taskHelperService, NotifiHelperService notifiHelperService,
-			ApplicationEventPublisher applicationEventPublisher, AuthenticationService authService,
+			TaskHelperService taskHelperService, AuthenticationService authService,
 			MethodGeneral methodGeneral, IdEncoder idEncoder) {
 		this.teamRepository = teamRepository;
 		this.userHelperService = userHelperService;
 		this.taskHelperService = taskHelperService;
-		this.notifiHelperService = notifiHelperService;
-		this.applicationEventPublisher = applicationEventPublisher;
 		this.authService = authService;
 		this.methodGeneral = methodGeneral;
 		this.idEncoder = idEncoder;
@@ -94,22 +78,18 @@ public class TeamServiceImpl implements TeamService {
 	}
 
 	@Override
-	@Transactional
 	public void deleteTeam(String teamId) {
 		Long currentUserId = authService.getUserIdInContext();
-		Long decodedTeamId = idEncoder.decode(teamId);
-		teamRepository.findById(decodedTeamId).ifPresentOrElse(team -> {
-			if (taskHelperService.isTaskActive(teamId, StatusEnum.COMPLETED.toString())) {
+		Long teamIdLong = idEncoder.decode(teamId);
+		teamRepository.findById(teamIdLong).ifPresentOrElse(team -> {
+			if (taskHelperService.isTaskActive(teamIdLong, StatusEnum.COMPLETED.toString())) {
 				throw new DuplicateException("This team has not completed some tasks. Can not delete.");
 			}
 			methodGeneral.validatePermission(team.getLeaderId().getId(), currentUserId);
-			List<Task> tasks = taskHelperService.getTaskByTeamId(teamId);
-			List<Long> taskIds = tasks.stream().map(Task::getId).collect(Collectors.toList());
-			taskIds.stream().forEach(taskId -> applicationEventPublisher.publishEvent(new ReportDeletedEvent(taskId)));
-			notifiHelperService.deleteByContentIdsAndType(taskIds, NotificationType.TASK.toString());
-			notifiHelperService.deleteNotification(decodedTeamId, NotificationType.TEAM.toString());
 			teamRepository.delete(team);
-		}, () -> new ResourceNotFoundException("This team not found"));
+		}, () -> {
+			throw new ResourceNotFoundException("This team not found");
+		});
 	}
 
 	@Override
