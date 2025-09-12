@@ -56,6 +56,7 @@ public class UserServiceImpl implements UserService {
 			t.setLanguage(fcmRequest.getLanguage());
 			userRepository.save(t);
 		});
+		LOGGER.info("Update fcm token and language to user");
 	}
 
 	@Override
