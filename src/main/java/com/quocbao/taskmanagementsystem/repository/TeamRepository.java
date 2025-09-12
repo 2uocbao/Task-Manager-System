@@ -26,23 +26,29 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
 			+ "u.image AS image "
 			+ "FROM Team t "
 			+ "LEFT JOIN User u ON t.leaderId.id = u.id "
-			+ "WHERE t.leaderId.id = :userId OR EXISTS " 
+			+ "WHERE t.leaderId.id = :userId OR EXISTS "
 			+ "( SELECT 1 "
 			+ "FROM TeamMember tm "
 			+ "WHERE tm.team.id = t.id "
-			+ " AND tm.user.id = :userId )" )
+			+ " AND tm.user.id = :userId )")
 	List<TeamProjection> getTeams(@Param("userId") Long userId);
+
 	interface TeamProjection {
 		Long getId();
+
 		String getName();
+
 		Timestamp getCreatedAt();
+
 		Long getLeaderId();
+
 		String getFirstName();
+
 		String getLastName();
+
 		String getImage();
 	}
-	
-	
+
 	@Query("SELECT "
 			+ "t.id AS id, "
 			+ "t.name AS name, "
@@ -53,23 +59,31 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
 			+ "u.image AS image "
 			+ "FROM Team t "
 			+ "LEFT JOIN User u ON t.leaderId.id = u.id "
-			+ "WHERE (t.leaderId.id = :userId OR EXISTS " 
+			+ "WHERE (t.leaderId.id = :userId OR EXISTS "
 			+ "( SELECT 1 "
 			+ "FROM TeamMember tm "
 			+ "WHERE tm.team.id = t.id "
 			+ " AND tm.user.id = :userId )) "
-			+ "AND t.name LIKE LOWER(CONCAT('%', :keySearch, '%'))" )
-	Page<TeamProjection> searchTeams(@Param("userId") Long userId, @Param("keySearch") String keySearch, Pageable pageable);
+			+ "AND t.name LIKE LOWER(CONCAT('%', :keySearch, '%'))")
+	Page<TeamProjection> searchTeams(@Param("userId") Long userId, @Param("keySearch") String keySearch,
+			Pageable pageable);
+
 	interface TeamSearchProjection {
 		Long getId();
+
 		String getName();
+
 		Timestamp getCreatedAt();
+
 		Long getLeaderId();
+
 		String getFirstName();
+
 		String getLastName();
+
 		String getImage();
 	}
-	
+
 	@Query("SELECT "
 			+ "t.id AS id, "
 			+ "t.name AS name "
@@ -78,11 +92,13 @@ public interface TeamRepository extends JpaRepository<Team, Long>, JpaSpecificat
 			+ "( SELECT 1 "
 			+ "FROM TeamMember tm "
 			+ "WHERE tm.team.id = t.id "
-			+ " AND tm.user.id = :userId )" )
+			+ " AND tm.user.id = :userId )")
 	List<TeamCustomProjection> getCustomTeams(@Param("userId") Long userId);
+
 	interface TeamCustomProjection {
 		Long getId();
+
 		String getName();
 	}
-	
+
 }
