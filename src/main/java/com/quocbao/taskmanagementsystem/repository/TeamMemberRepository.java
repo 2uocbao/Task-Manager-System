@@ -26,17 +26,21 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long>, J
 			+ "LEFT JOIN User u ON u.id = tm.user.id "
 			+ "WHERE tm.team.id = :teamId")
 	Page<TeamMemberProjection> getTeamMembers(@Param("teamId") Long teamId, Pageable pageable);
-	interface TeamMemberProjection{
+
+	public interface TeamMemberProjection {
 		Long getId();
+
 		Long getUserId();
+
 		String getFirstName();
+
 		String getLastName();
+
 		String getImage();
+
 		Timestamp getJoinedAt();
 	}
-	
-	
-	
+
 	@Query("SELECT "
 			+ "tm.id AS id, "
 			+ "u.id AS userId, "
@@ -51,15 +55,21 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long>, J
 			+ "or u.lastName LIKE LOWER(CONCAT('%', :keySearch, '%')) "
 			+ "or u.email LIKE LOWER(CONCAT('%', :keySearch, '%')))  "
 			+ "AND tm.team.id = :teamId")
-	Page<SearchMemberProjection> searchTeamMembers(@Param("teamId") Long teamId, @Param("keySearch") String keySearch, Pageable pageable);
-	interface SearchMemberProjection{
+	Page<SearchMemberProjection> searchTeamMembers(@Param("teamId") Long teamId, @Param("keySearch") String keySearch,
+			Pageable pageable);
+
+	interface SearchMemberProjection {
 		Long getId();
+
 		Long getUserId();
+
 		String getFirstName();
+
 		String getLastName();
+
 		String getImage();
+
 		Timestamp getJoinedAt();
 	}
-	
-	
+
 }
