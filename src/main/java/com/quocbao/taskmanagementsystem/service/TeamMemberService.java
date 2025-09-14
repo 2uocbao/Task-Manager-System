@@ -10,11 +10,13 @@ public interface TeamMemberService {
 
 	public TeamMemberResponse createTeamMember(String teamId, TeamMemberRequest teamMemberRequest);
 
-	public void deleteTeamMember(String teamId, String teamMemberId, TeamMemberRequest teamMemberRequest);
+	public void deleteTeamMember(String teamId, String teamMemberId);
 
 	public Page<TeamMemberResponse> getTeamMembers(String teamId, Pageable pageable);
 
 	public Page<TeamMemberResponse> searchTeamMembers(String teamId, String keyword, Pageable pageable);
-	
-	public void leaveTeam(String teamId, TeamMemberRequest teamMemberRequest);
+
+	public void leaveTeam(String teamId);
+
+	public void addLeaderTeam(Long userId, Long teamId);
 }
