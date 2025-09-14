@@ -37,9 +37,8 @@ public class TeamMemberController {
 	}
 
 	@PutMapping("/teams/{teamId}/team_members/{teamMemberId}")
-	public DataResponse deleteTeamMember(@PathVariable String teamId, @PathVariable String teamMemberId,
-			@RequestBody TeamMemberRequest teamMemberRequest) {
-		teamMemberService.deleteTeamMember(teamId, teamMemberId, teamMemberRequest);
+	public DataResponse deleteTeamMember(@PathVariable String teamId, @PathVariable String teamMemberId) {
+		teamMemberService.deleteTeamMember(teamId, teamMemberId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Success");
 	}
 
@@ -63,10 +62,10 @@ public class TeamMemberController {
 				memberResponse.getSort().isUnsorted(), memberResponse.getSort().isEmpty());
 		return paginationResponse;
 	}
-	
+
 	@PutMapping("/teams/{teamId}/team_members")
-	public DataResponse leaveTeam(@PathVariable String teamId, @RequestBody TeamMemberRequest teamMemberRequest) {
-		teamMemberService.leaveTeam(teamId, teamMemberRequest);
+	public DataResponse leaveTeam(@PathVariable String teamId) {
+		teamMemberService.leaveTeam(teamId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Success");
 	}
 
