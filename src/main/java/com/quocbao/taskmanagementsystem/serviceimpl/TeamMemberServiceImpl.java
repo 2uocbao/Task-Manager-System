@@ -9,11 +9,12 @@ import org.springframework.stereotype.Service;
 import com.quocbao.taskmanagementsystem.common.ConvertData;
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.common.NotificationType;
+import com.quocbao.taskmanagementsystem.common.RoleEnum;
 import com.quocbao.taskmanagementsystem.entity.TeamMember;
 import com.quocbao.taskmanagementsystem.entity.Team;
 import com.quocbao.taskmanagementsystem.entity.User;
-import com.quocbao.taskmanagementsystem.events.DeleteEvent.NotifiLeavedEvent;
-import com.quocbao.taskmanagementsystem.events.NotifiEvent.TeamMemberEvent;
+import com.quocbao.taskmanagementsystem.events.Notification.NotificationAddEvent;
+import com.quocbao.taskmanagementsystem.exception.AccessDeniedException;
 import com.quocbao.taskmanagementsystem.exception.DuplicateException;
 import com.quocbao.taskmanagementsystem.exception.ForbiddenException;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
@@ -24,11 +25,7 @@ import com.quocbao.taskmanagementsystem.service.TeamMemberService;
 import com.quocbao.taskmanagementsystem.service.utils.AuthenticationService;
 import com.quocbao.taskmanagementsystem.service.utils.ContactHelperService;
 import com.quocbao.taskmanagementsystem.service.utils.TaskAssignmentHelperService;
-import com.quocbao.taskmanagementsystem.service.utils.TeamHelperService;
-import com.quocbao.taskmanagementsystem.service.utils.UserHelperService;
 import com.quocbao.taskmanagementsystem.specifications.TeamMemberSpecification;
-
-import jakarta.transaction.Transactional;
 
 @Service
 public class TeamMemberServiceImpl implements TeamMemberService {
@@ -39,10 +36,6 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 
 	private final ContactHelperService contactHelperService;
 
-	private final UserHelperService userHelperService;
-
-	private final TeamHelperService teamHelperService;
-
 	private final TaskAssignmentHelperService taskAssignmentHelperService;
 
 	private final AuthenticationService authService;
@@ -51,14 +44,12 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 
 	public TeamMemberServiceImpl(ApplicationEventPublisher applicationEventPublisher,
 			TeamMemberRepository teamMemberRepository, ContactHelperService contactHelperService,
-			UserHelperService userHelperService, TeamHelperService teamHelperService,
+
 			TaskAssignmentHelperService taskAssignmentHelperService, AuthenticationService authService,
 			IdEncoder idEncoder) {
 		this.applicationEventPublisher = applicationEventPublisher;
 		this.teamMemberRepository = teamMemberRepository;
 		this.contactHelperService = contactHelperService;
-		this.userHelperService = userHelperService;
-		this.teamHelperService = teamHelperService;
 		this.taskAssignmentHelperService = taskAssignmentHelperService;
 		this.authService = authService;
 		this.idEncoder = idEncoder;
@@ -68,67 +59,62 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 	public TeamMemberResponse createTeamMember(String teamId, TeamMemberRequest teamMemberRequest) {
 
 		Long currentUserId = authService.getUserIdInContext();
+		Long teamIdLong = idEncoder.decode(teamId);
+		Long userMemberIdLong = idEncoder.decode(teamMemberRequest.getMemberId());
 
-		if (!isLeaderOfTeam(currentUserId, teamId)) {
-			throw new ForbiddenException("User do not have permission");
+		if (!isLeaderOfTeam(currentUserId, teamIdLong, RoleEnum.ADMIN)) {
+			throw new AccessDeniedException("User do not have permission");
 		}
 
-		if (!contactHelperService.isConnected(currentUserId, teamMemberRequest.getMemberId())) {
+		if (!contactHelperService.isConnected(currentUserId, userMemberIdLong)) {
 			throw new ResourceNotFoundException("Can not add user to team");
 		}
 
-		if (alreadyExistUserInTeam(teamId, idEncoder.decode(teamMemberRequest.getMemberId()))) {
+		if (alreadyExistUserInTeam(teamIdLong, userMemberIdLong)) {
 			throw new DuplicateException("User already exist in team");
 		}
 
-		// Retrieve info user is new member
-		Long memberId = idEncoder.decode(teamMemberRequest.getMemberId());
-		User user = userHelperService.getUser(memberId).get();
-		Team team = Team.builder().id(idEncoder.decode(teamId)).build();
+		User user = User.builder().id(userMemberIdLong).build();
+		Team team = Team.builder().id(userMemberIdLong).build();
 
-		TeamMember teamMember = teamMemberRepository.save(TeamMember.builder().user(user).team(team).build());
+		TeamMember teamMember = teamMemberRepository
+				.save(TeamMember.builder().user(user).team(team).role(RoleEnum.MEMBER).build());
 
-		String userName = user.getFirstName() + " " + user.getLastName();
-		String image = teamMember.getUser().getImage();
+		sendNotification(currentUserId, userMemberIdLong, teamIdLong, NotificationType.ADD_MEMBER.toString());
 
-		sendNotification(currentUserId, user.getId(), teamId, teamMemberRequest.getTeamName(),
-				teamMemberRequest.getLeaderName(), NotificationType.ADD_MEMBER.toString(),
-				user.getToken() == null ? null : user.getToken(), user.getLanguage());
-
-		return new TeamMemberResponse(idEncoder.encode(teamMember.getId()), teamMemberRequest.getMemberId(), userName,
-				image, ConvertData.timeStampToString(teamMember.getJoinedAt()));
+		return new TeamMemberResponse(idEncoder.encode(teamMember.getId()), teamMemberRequest.getMemberId(), null,
+				null, ConvertData.timeStampToString(teamMember.getJoinedAt()));
 	}
 
 	@Override
-	@Transactional
-	public void deleteTeamMember(String teamId, String teamMemberId, TeamMemberRequest teamMemberRequest) {
+	public void deleteTeamMember(String teamId, String teamMemberId) {
 		Long currentUserId = authService.getUserIdInContext();
-		if (!isLeaderOfTeam(currentUserId, teamId)) {
-			throw new ForbiddenException("User do not have permission");
+		Long teamIdLong = idEncoder.decode(teamId);
+		Long teamMemberIdLong = idEncoder.decode(teamMemberId);
+		if (!isLeaderOfTeam(currentUserId, teamIdLong, RoleEnum.ADMIN)) {
+			throw new AccessDeniedException("You can not do this");
 		}
-
-		teamMemberRepository.findById(idEncoder.decode(teamMemberId)).ifPresentOrElse(teamMember -> {
+		teamMemberRepository.findById(teamMemberIdLong).ifPresentOrElse(teamMember -> {
 			if (teamMember.getUser().getId() == currentUserId) {
-				throw new ResourceNotFoundException("Could not delete");
+				throw new ForbiddenException("Could not delete");
 			}
+			teamMemberRepository.deleteById(teamMemberIdLong);
 			// Push the event delete notification related to this user.
-			applicationEventPublisher.publishEvent(
-					new NotifiLeavedEvent(teamMember.getUser().getId(), NotificationType.TEAM.toString()));
-			sendNotification(currentUserId, teamMember.getUser().getId(), teamId, teamMemberRequest.getTeamName(),
-					teamMemberRequest.getLeaderName(), NotificationType.REMOVE_MEMBER.toString(),
-					teamMember.getUser().getToken() == null ? null : teamMember.getUser().getToken(),
-					teamMember.getUser().getLanguage());
-			teamMemberRepository.deleteById(idEncoder.decode(teamMemberId));
-		}, () -> new ResourceNotFoundException("Team member not found"));
+			sendNotification(currentUserId, teamMember.getUser().getId(), teamIdLong,
+					NotificationType.REMOVE_MEMBER.toString());
+		}, () -> {
+			throw new ResourceNotFoundException("Team member not found");
+		});
 	}
 
 	@Override
 	public Page<TeamMemberResponse> getTeamMembers(String teamId, Pageable pageable) {
 		Long currentUserId = authService.getUserIdInContext();
-		if (!isLeaderOfTeam(currentUserId, teamId) && !alreadyExistUserInTeam(teamId, currentUserId)) {
-			throw new ForbiddenException("User do not have permission");
+		Long teamIdLong = idEncoder.decode(teamId);
+		if (alreadyExistUserInTeam(teamIdLong, currentUserId)) {
+			throw new AccessDeniedException("User do not have permission");
 		}
-		return teamMemberRepository.getTeamMembers(idEncoder.decode(teamId), pageable).map(teamMember -> {
+		return teamMemberRepository.getTeamMembers(teamIdLong, pageable).map(teamMember -> {
 			String userName = teamMember.getFirstName() + " " + teamMember.getLastName();
 			String image = teamMember.getImage();
 			return new TeamMemberResponse(idEncoder.encode(teamMember.getId()),
@@ -148,52 +134,50 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 	}
 
 	@Override
-	@Transactional
-	public void leaveTeam(String teamId, TeamMemberRequest teamMemberRequest) {
+	public void leaveTeam(String teamId) {
 		Long currentUserId = authService.getUserIdInContext();
 		Long teamIdLong = idEncoder.decode(teamId);
-		Boolean isMemberInTeam = teamMemberRepository.exists(Specification.where(TeamMemberSpecification
-				.getTeamMemberByUserId(currentUserId).and(TeamMemberSpecification.getTeamMemberByTeamId(teamIdLong))));
-		if (!isMemberInTeam) {
+
+		if (!alreadyExistUserInTeam(teamIdLong, currentUserId)) {
 			// Is the user in the team
 			throw new ResourceNotFoundException("You was leaved this team");
 		}
 		if (taskAssignmentHelperService.isInAnyTask(currentUserId)) {
 			// Has the task not been completed
-			throw new DuplicateException("Can not leave this team. You need to leave the task where you joined.");
+			throw new AccessDeniedException("Can not leave this team. You need to leave the task where you joined.");
 		}
-		// Fetch the leader of this team.
-		User leader = teamHelperService.getTeamById(teamId).getLeaderId();
-
-		// Push the event delete notification related to this user.
-		applicationEventPublisher.publishEvent(new NotifiLeavedEvent(currentUserId, NotificationType.TEAM.toString()));
-		// Send the notification to the leader of this team.
-		sendNotification(currentUserId, leader.getId(), teamId, teamMemberRequest.getTeamName(),
-				teamMemberRequest.getLeaderName(), NotificationType.LEAVE_MEMBER.toString(),
-				leader.getToken() == null ? null : leader.getToken(), leader.getLanguage());
-		teamMemberRepository.delete(Specification.where(TeamMemberSpecification.getTeamMemberByUserId(currentUserId)
-				.and(TeamMemberSpecification.getTeamMemberByTeamId(teamIdLong))));
+		Long result = teamMemberRepository
+				.delete(Specification.where(TeamMemberSpecification.getTeamMemberByUserId(currentUserId)
+						.and(TeamMemberSpecification.getTeamMemberByTeamId(teamIdLong))));
+		if (result == 1) {
+			// Send the notification to the leader of this team.
+			sendNotification(currentUserId, teamIdLong, teamIdLong, NotificationType.LEAVE_MEMBER.toString());
+		}
 	}
 
-	protected Boolean isLeaderOfTeam(Long userId, String teamId) {
-		if (teamHelperService.isLeaderOfTeam(userId, teamId)) {
-			return true;
-		}
-		return false;
+	@Override
+	public void addLeaderTeam(Long userId, Long teamId) {
+		TeamMember teamMember = TeamMember.builder().user(User.builder().id(userId).build())
+				.team(Team.builder().id(teamId).build()).build();
+		teamMemberRepository.save(teamMember);
 	}
 
-	protected Boolean alreadyExistUserInTeam(String teamId, Long userId) {
-		if (teamMemberRepository
-				.exists(Specification.where(TeamMemberSpecification.getTeamMemberByTeamId(idEncoder.decode(teamId))
-						.and(TeamMemberSpecification.getTeamMemberByUserId(userId))))) {
-			return true;
-		}
-		return false;
+	protected Boolean isLeaderOfTeam(Long userId, Long teamId, RoleEnum role) {
+		return teamMemberRepository.exists(Specification.where(TeamMemberSpecification.getTeamMemberByTeamId(teamId)
+				.and(TeamMemberSpecification.getTeamMemberByUserId(userId))
+				.and(TeamMemberSpecification.getTeamMemberByRole(role))));
 	}
 
-	protected void sendNotification(Long userId, Long receiverId, String teamId, String teamName, String leaderName,
-			String contentType, String token, String language) {
-		applicationEventPublisher.publishEvent(new TeamMemberEvent(userId, receiverId, idEncoder.decode(teamId),
-				leaderName, teamName, contentType, token, language));
+	protected Boolean alreadyExistUserInTeam(Long teamId, Long userId) {
+		return teamMemberRepository
+				.exists(Specification.where(TeamMemberSpecification.getTeamMemberByTeamId(teamId)
+						.and(TeamMemberSpecification.getTeamMemberByUserId(userId))));
+	}
+
+	protected void sendNotification(Long userId, Long receiverId, Long teamId,
+			String contentType) {
+		applicationEventPublisher
+				.publishEvent(new NotificationAddEvent(userId, receiverId, teamId, NotificationType.TEAM.toString(),
+						contentType));
 	}
 }
