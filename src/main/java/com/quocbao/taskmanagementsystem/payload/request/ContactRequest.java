@@ -7,9 +7,6 @@ import lombok.Getter;
 @Getter
 public class ContactRequest {
 
-	@JsonProperty("sender_name")
-	private String senderName;
-
 	@JsonProperty("to_user")
 	private String toUser;
 }
