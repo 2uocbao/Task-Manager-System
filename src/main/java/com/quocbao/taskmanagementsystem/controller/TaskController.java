@@ -90,15 +90,13 @@ public class TaskController {
 		return new DataResponse(HttpStatus.OK.value(), taskService.updatePriority(taskId, taskRequest), "Success");
 	}
 
-	@GetMapping("/tasks/searchs")
-	public PaginationResponse<TaskResponse> searchTask(
+	@GetMapping("/teams/{teamId}/tasks/searchs")
+	public PaginationResponse<TaskResponse> searchTask(@PathVariable String teamId,
 			@RequestParam(required = false) String keyword, @RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size) {
 		Pageable pageable = PageRequest.of(page, size);
-		Page<TaskResponse> taskResponses = taskService.searchTasks(keyword, pageable);
-
+		Page<TaskResponse> taskResponses = taskService.searchTasks(teamId, keyword, pageable);
 		List<TaskResponse> taskResponseList = taskResponses.getContent();
-
 		return new PaginationResponse<TaskResponse>(HttpStatus.OK, taskResponseList,
 				taskResponses.getPageable().getPageNumber(), taskResponses.getSize(), taskResponses.getTotalElements(),
 				taskResponses.getTotalPages(), taskResponses.getSort().isSorted(), taskResponses.getSort().isUnsorted(),
