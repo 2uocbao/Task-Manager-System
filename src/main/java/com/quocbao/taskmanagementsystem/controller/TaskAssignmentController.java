@@ -35,8 +35,8 @@ public class TaskAssignmentController {
 	@PutMapping("/tasks/{taskId}/task_assignments/{taskAssignId}")
 	public DataResponse deleteTaskAssign(@PathVariable String taskId, @PathVariable String taskAssignId,
 			@RequestBody TaskAssignRequest taskAssignRequest) {
-		return new DataResponse(HttpStatus.OK.value(),
-				taskAssignService.removeAssign(taskId, taskAssignId, taskAssignRequest), "Success");
+		taskAssignService.removeAssign(taskId, taskAssignId, taskAssignRequest);
+		return new DataResponse(HttpStatus.OK.value(), null, "Success");
 	}
 
 	@GetMapping("/tasks/{taskId}/task_assignments")
