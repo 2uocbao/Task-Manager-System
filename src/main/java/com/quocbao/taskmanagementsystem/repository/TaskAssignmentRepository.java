@@ -29,7 +29,7 @@ public interface TaskAssignmentRepository
 			+ "WHERE ta.task.id = :taskId")
 	public List<TaskAssignmentProjection> getTaskAssignments(@Param("taskId") Long taskId);
 
-	interface TaskAssignmentProjection {
+	public interface TaskAssignmentProjection {
 		Long getId();
 
 		Long getAssignerId();
