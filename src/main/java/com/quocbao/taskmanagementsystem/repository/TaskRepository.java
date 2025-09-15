@@ -29,9 +29,10 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
 			+ "LEFT JOIN Comment c ON c.task.id = t.id "
 			+ "LEFT JOIN Report r ON r.task.id = t.id "
 			+ "LEFT JOIN TaskAssignment ta ON ta.task.id = t.id "
-			+ "WHERE (ta.user.id = :userId OR t.user.id = :userId) AND t.title LIKE LOWER(CONCAT('%', :keySearch, '%')) "
+			+ "WHERE ta.user.id = :userId AND t.team.id = :teamId AND t.title LIKE LOWER(CONCAT('%', :keySearch, '%')) "
 			+ "GROUP BY t.id, t.title, t.status")
-	Page<TaskProjections> searchTask(@Param("userId") Long userId, @Param("keySearch") String keySearch,
+	Page<TaskProjections> searchTask(@Param("teamId") Long teamId, @Param("userId") Long userId,
+			@Param("keySearch") String keySearch,
 			Pageable pageable);
 
 	interface TaskProjections {
@@ -66,43 +67,11 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
 			+ " AND (t.dueAt BETWEEN :startDate AND :endDate) AND "
 			+ " t.team.id = :teamId AND t.status = :status AND t.priority = :priority "
 			+ "GROUP BY t.id, t.title, t.status, t.dueAt")
-	Page<TaskProjectionMembers> getTaskByMember(@Param("userId") Long userId, @Param("teamId") Long teamId,
+	Page<TaskProjection> getTask(@Param("userId") Long userId, @Param("teamId") Long teamId,
 			@Param("status") StatusEnum status, @Param("priority") PriorityEnum priority,
 			@Param("startDate") Timestamp startDate, @Param("endDate") Timestamp endDate, Pageable pageable);
 
-	public interface TaskProjectionMembers {
-		Long getId();
-
-		String getTitle();
-
-		String getPriority();
-
-		Timestamp getDueAt();
-
-		Long getCommentCount();
-
-		Long getReportCount();
-	}
-
-	@Query("SELECT "
-			+ "t.id AS id, "
-			+ "t.title AS title, "
-			+ "t.priority AS priority, "
-			+ "t.dueAt AS dueAt, "
-			+ "COUNT (DISTINCT c.id) AS commentCount, "
-			+ "COUNT (DISTINCT r.id) AS reportCount "
-			+ "FROM Task t "
-			+ "LEFT JOIN Comment c ON c.task.id = t.id "
-			+ "LEFT JOIN Report r ON r.task.id = t.id "
-			+ "WHERE t.user.id = :userId  "
-			+ " AND (t.dueAt BETWEEN :startDate AND :endDate)"
-			+ "  AND t.team.id = :teamId AND t.status = :status AND t.priority = :priority "
-			+ "GROUP BY t.id, t.title, t.status, t.dueAt")
-	Page<TaskProjectionMembers> getTaskByLeader(@Param("userId") Long userId, @Param("teamId") Long teamId,
-			@Param("status") StatusEnum status, @Param("priority") PriorityEnum priority,
-			@Param("startDate") Timestamp startDate, @Param("endDate") Timestamp endDate, Pageable pageable);
-
-	public interface TaskProjectionLeaders {
+	public interface TaskProjection {
 		Long getId();
 
 		String getTitle();
