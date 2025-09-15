@@ -1,5 +1,6 @@
 package com.quocbao.taskmanagementsystem.service;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -28,5 +29,7 @@ public interface TaskService {
 	public Page<TaskResponse> getTasks(String teamId, String status, String priority, String startDate,
 			String endDate, Pageable pageable);
 
-	public Page<TaskResponse> searchTasks(String keyword, Pageable pageable);
+	public Page<TaskResponse> searchTasks(String teamId, String keyword, Pageable pageable);
+
+	public void listSchudeledTasks(Timestamp startTime, Timestamp endTime);
 }
