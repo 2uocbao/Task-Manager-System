@@ -2,6 +2,7 @@ package com.quocbao.taskmanagementsystem.specifications;
 
 import org.springframework.data.jpa.domain.Specification;
 
+import com.quocbao.taskmanagementsystem.common.RoleEnum;
 import com.quocbao.taskmanagementsystem.entity.TaskAssignment;
 import com.quocbao.taskmanagementsystem.entity.TaskAssignment_;
 import com.quocbao.taskmanagementsystem.entity.Task_;
@@ -21,5 +22,9 @@ public class TaskAssignSpecification {
 	public static Specification<TaskAssignment> getByTask(Long taskId) {
 		return (root, _, criteriaBuilder) -> criteriaBuilder.equal(root.get(TaskAssignment_.task).get(Task_.id),
 				taskId);
+	}
+
+	public static Specification<TaskAssignment> getByRole(RoleEnum role) {
+		return (root, _, criteriaBuilder) -> criteriaBuilder.equal(root.get(TaskAssignment_.role), role);
 	}
 }
