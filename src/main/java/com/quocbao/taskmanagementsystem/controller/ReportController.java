@@ -58,9 +58,9 @@ public class ReportController {
 		return paginationResponse;
 	}
 
-	@DeleteMapping("/tasks/{taskId}/reports/{reportId}")
-	public DataResponse deleteReport(@PathVariable String reportId, @PathVariable String taskId) {
-		reportService.deleteReport(reportId, taskId);
+	@DeleteMapping("/reports/{reportId}")
+	public DataResponse deleteReport(@PathVariable String reportId) {
+		reportService.deleteReport(reportId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Delete report successful");
 	}
 
