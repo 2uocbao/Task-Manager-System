@@ -15,7 +15,7 @@ public interface ReportService {
 
 	public ReportResponse createReportForLink(ReportRequest reportRequest);
 
-	public void deleteReport(String reportId, String taskId);
+	public void deleteReport(String reportId);
 
 	public List<ReportResponse> getReports(String taskId);
 
