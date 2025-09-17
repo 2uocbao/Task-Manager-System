@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.entity.Notification;
@@ -62,7 +61,6 @@ public class NotificationServiceImpl implements NotificationService {
 		this.idEncoder = idEncoder;
 	}
 
-	@Async("event_notifi")
 	@Override
 	public void saveNotification(Notification notification) {
 		Notification result = notificationRepository.save(notification);
