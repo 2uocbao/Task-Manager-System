@@ -30,11 +30,8 @@ public class NotifiResponse {
 	@JsonProperty("type_content")
 	private String typeContent;
 
-	@JsonProperty("title_task")
-	private String titleTask;
-
-	@JsonProperty("name_team")
-	private String nameTeam;
+	@JsonProperty("target")
+	private String target;
 
 	@JsonProperty("status")
 	private Boolean status;
@@ -46,15 +43,14 @@ public class NotifiResponse {
 	private String createdAt;
 
 	public NotifiResponse(Long id, String senderId, String contentId, String senderName, String image,
-			String typeContent, String titleTask, String nameTeam, Boolean status, String type, Timestamp createdAt) {
+			String typeContent, String target, Boolean status, String type, Timestamp createdAt) {
 		this.id = String.valueOf(id);
 		this.senderId = senderId;
 		this.contentId = contentId;
 		this.senderName = senderName;
 		this.image = image;
 		this.typeContent = typeContent;
-		this.titleTask = titleTask;
-		this.nameTeam = nameTeam;
+		this.target = target;
 		this.status = status;
 		this.type = type;
 		this.createdAt = createdAt == null ? null : ConvertData.timeStampToString(createdAt);
@@ -66,8 +62,7 @@ public class NotifiResponse {
 		map.put("content_id", contentId);
 		map.put("sender_name", senderName);
 		map.put("type_content", typeContent);
-		map.put("title_task", titleTask);
-		map.put("name_team", nameTeam);
+		map.put("target", target);
 		map.put("type", type);
 		return map;
 	}
