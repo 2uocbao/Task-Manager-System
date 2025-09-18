@@ -11,9 +11,6 @@ import lombok.Setter;
 @Setter
 public class CommentRequest {
 
-	@JsonProperty("task_title")
-	private String taskTitle;
-
 	@JsonProperty("mention")
 	private List<String> mention;
 
