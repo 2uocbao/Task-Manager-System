@@ -9,7 +9,7 @@ public class IdEncoder {
 	private final Hashids hashids;
 
 	public IdEncoder() {
-		this.hashids = new Hashids("2uocbao.0106", 6);
+		this.hashids = new Hashids("your-salt", 6);
 	}
 
 	public String encode(long id) {
