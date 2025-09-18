@@ -51,13 +51,6 @@ public interface ContactRepository extends JpaRepository<Contacts, Long>, JpaSpe
 		String getStatus();
 	}
 
-	@Query("SELECT COUNT(c) > 0 FROM Contacts c " +
-			"WHERE ((c.user.id = :userId1 AND c.friendId.id = :userId2) " +
-			"   OR (c.user.id = :userId2 AND c.friendId.id = :userId1)) " +
-			"AND (c.statusEnum = 'ACCEPTED' OR c.statusEnum = 'REQUESTED')")
-	boolean isConnected(@Param("userId1") Long userId1,
-			@Param("userId2") Long userId2);
-
 	@Query("SELECT "
 			+ "c.id AS id, "
 			+ "c.statusEnum AS status, "
