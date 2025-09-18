@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.quocbao.taskmanagementsystem.common.DataResponse;
 import com.quocbao.taskmanagementsystem.common.PaginationResponse;
 import com.quocbao.taskmanagementsystem.payload.request.ContactRequest;
-import com.quocbao.taskmanagementsystem.payload.request.UpdateContactRequest;
 import com.quocbao.taskmanagementsystem.payload.response.ContactResponse;
 import com.quocbao.taskmanagementsystem.service.ContactService;
 
@@ -43,9 +42,8 @@ public class ContactController {
 	}
 
 	@PutMapping("/contacts/{contactId}")
-	public DataResponse updateContact(@PathVariable String contactId,
-			@RequestBody UpdateContactRequest updateContactRequest) {
-		contactService.updateContact(contactId, updateContactRequest);
+	public DataResponse updateContact(@PathVariable String contactId) {
+		contactService.updateContact(contactId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Update request successful");
 	}
 
@@ -88,7 +86,7 @@ public class ContactController {
 				contactResponse.getSort().isSorted(), contactResponse.getSort().isUnsorted(),
 				contactResponse.getSort().isEmpty());
 	}
-	
+
 	@GetMapping("/teams/{teamId}/available-users/searchs")
 	public PaginationResponse<ContactResponse> searchUserAddToTeam(@PathVariable String teamId,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
@@ -101,6 +99,6 @@ public class ContactController {
 				memberResponse.getTotalElements(), memberResponse.getTotalPages(), memberResponse.getSort().isSorted(),
 				memberResponse.getSort().isUnsorted(), memberResponse.getSort().isEmpty());
 		return paginationResponse;
-	} 
+	}
 
 }
