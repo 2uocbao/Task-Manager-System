@@ -1,100 +1,117 @@
 package com.quocbao.taskmanagementsystem.serviceimpl;
 
-import java.util.Optional;
-
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
-import com.quocbao.taskmanagementsystem.common.MethodGeneral;
+import com.quocbao.taskmanagementsystem.common.RoleEnum;
 import com.quocbao.taskmanagementsystem.entity.Task;
 import com.quocbao.taskmanagementsystem.entity.Comment;
 import com.quocbao.taskmanagementsystem.entity.User;
-import com.quocbao.taskmanagementsystem.events.CommentEvent;
+import com.quocbao.taskmanagementsystem.events.Mention.MentionAddEvent;
+import com.quocbao.taskmanagementsystem.events.Mention.MentionUpdateEvent;
+import com.quocbao.taskmanagementsystem.exception.AccessDeniedException;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
 import com.quocbao.taskmanagementsystem.payload.request.CommentRequest;
 import com.quocbao.taskmanagementsystem.payload.response.CommentResponse;
 import com.quocbao.taskmanagementsystem.repository.CommentRepository;
 import com.quocbao.taskmanagementsystem.service.CommentService;
+import com.quocbao.taskmanagementsystem.service.utils.AuthenticationService;
+import com.quocbao.taskmanagementsystem.service.utils.TaskAssignmentHelperService;
 import com.quocbao.taskmanagementsystem.service.utils.TaskHelperService;
-import com.quocbao.taskmanagementsystem.service.utils.UserHelperService;
 
 @Service
 public class CommentServiceImpl implements CommentService {
 
-	private final ApplicationEventPublisher applicationEventPublisher;
-	private final CommentRepository commentRepository;
-	private final UserHelperService userHelperService;
-	private final TaskHelperService taskHelperService;
-	private final MethodGeneral methodGeneral;
-	private final IdEncoder idEncoder;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private final AuthenticationService authService;
+    private final CommentRepository commentRepository;
+    private final TaskHelperService taskHelperService;
+    private final TaskAssignmentHelperService taskAssignHelperService;
+    private final IdEncoder idEncoder;
 
-	public CommentServiceImpl(ApplicationEventPublisher applicationEventPublisher, CommentRepository commentRepository,
-			UserHelperService userHelperService, TaskHelperService taskHelperService, MethodGeneral methodGeneral,
-			IdEncoder idEncoder) {
-		this.applicationEventPublisher = applicationEventPublisher;
-		this.commentRepository = commentRepository;
-		this.userHelperService = userHelperService;
-		this.taskHelperService = taskHelperService;
-		this.methodGeneral = methodGeneral;
-		this.idEncoder = idEncoder;
-	}
+    public CommentServiceImpl(ApplicationEventPublisher applicationEventPublisher, AuthenticationService authService,
+            CommentRepository commentRepository, TaskHelperService taskHelperService,
+            TaskAssignmentHelperService taskAssignHelperService,
+            IdEncoder idEncoder) {
+        this.applicationEventPublisher = applicationEventPublisher;
+        this.authService = authService;
+        this.commentRepository = commentRepository;
+        this.taskHelperService = taskHelperService;
+        this.taskAssignHelperService = taskAssignHelperService;
+        this.idEncoder = idEncoder;
+    }
 
-	@Override
-	public CommentResponse createComment(String userId, String taskId, CommentRequest commentRequest) {
-		Task task = fetchTaskAndCheckUserHaveAccess(taskId, userId);
-		User user = userHelperService.userExist(userId)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
-		Comment comment = new Comment(user, task, commentRequest.getText());
-		if (commentRequest.getMention() != null) {
-			String senderName = Optional.ofNullable(task.getUser())
-					.map(userSender -> Optional.ofNullable(userSender.getFirstName()).orElse("") + " "
-							+ Optional.ofNullable(userSender.getLastName()).orElse(""))
-					.orElse("Unknown User");
-			applicationEventPublisher.publishEvent(new CommentEvent(user.getId(),
-					idEncoder.decode(commentRequest.getMention()), task.getId(), senderName, task.getTitle()));
-		}
-		return new CommentResponse(commentRepository.save(comment));
-	}
+    @Override
+    public CommentResponse createComment(String taskId, CommentRequest commentRequest) {
+        Long currentUserId = authService.getUserIdInContext();
+        Long taskIdLong = idEncoder.decode(taskId);
+        if (!taskHelperService.isTaskExist(taskIdLong)) {
+            throw new ResourceNotFoundException("The task for add comment do not exist");
+        }
+        if (!taskAssignHelperService.isUserInTask(currentUserId, taskIdLong)) {
+            throw new AccessDeniedException("User can not add comment to this task");
+        }
+        Task task = Task.builder().id(taskIdLong).build();
+        User user = User.builder().id(currentUserId).build();
+        Comment commentBuilder = Comment.builder().task(task).user(user).text(commentRequest.getText()).build();
+        Comment comment = commentRepository.save(commentBuilder);
+        if (!commentRequest.getMention().isEmpty()) {
+            applicationEventPublisher
+                    .publishEvent(new MentionAddEvent(currentUserId, comment.getId(), commentRequest.getMention()));
+        }
+        return new CommentResponse(comment);
+    }
 
-	private Task fetchTaskAndCheckUserHaveAccess(String taskId, String userId) {
-		Task task = taskHelperService.existTask(taskId)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
-		if (task.getAssignTo() != null) {
-			methodGeneral.havePermission(idEncoder.decode(userId), task.getUser().getId(), task.getAssignTo().getId());
-		} else {
+    @Override
+    public CommentResponse updateComment(String commentId, CommentRequest commentRequest) {
+        Long currentUserId = authService.getUserIdInContext();
+        Long commentIdLong = idEncoder.decode(commentId);
+        return commentRepository.findById(commentIdLong).map(comment -> {
+            if (comment.getUser().getId() != currentUserId) {
+                throw new AccessDeniedException("User do not have access");
+            }
+            comment.setText(commentRequest.getText());
+            Comment result = commentRepository.save(comment);
+            applicationEventPublisher
+                    .publishEvent(new MentionUpdateEvent(currentUserId, commentIdLong, commentRequest.getMention()));
+            return new CommentResponse(result);
+        }).orElseThrow(() -> {
+            throw new ResourceNotFoundException("Can not update task review");
+        });
+    }
 
-			methodGeneral.validatePermission(idEncoder.decode(userId), task.getUser().getId());
-		}
-		return task;
-	}
+    @Override
+    public Page<CommentResponse> getCommentsofTask(String taskId, Pageable pageable) {
+        Long currentUserId = authService.getUserIdInContext();
+        Long taskIdLong = idEncoder.decode(taskId);
+        if (!taskAssignHelperService.isUserInTask(currentUserId, taskIdLong)) {
+            throw new AccessDeniedException("User is not member in this task");
+        }
+        return commentRepository.getCommentsByTaskIds(idEncoder.decode(taskId),
+                pageable)
+                .map(t -> new CommentResponse(t.getId(), t.getText(),
+                        idEncoder.encode(t.getuserId()),
+                        t.getfirstName(), t.getlastName(), t.getimagePath(), t.getCreatedAt()));
 
-	@Override
-	public CommentResponse updateComment(String userId, long commentId, CommentRequest commentRequest) {
-		return commentRepository.findById(commentId).map(comment -> {
-			methodGeneral.validatePermission(idEncoder.decode(userId), comment.getUser().getId());
-			comment.setText(commentRequest.getText());
-			return new CommentResponse(commentRepository.save(comment));
-		}).orElseThrow(() -> new ResourceNotFoundException("Can not update task review"));
-	}
+    }
 
-	@Override
-	public Page<CommentResponse> getCommentsofTask(String taskId, Pageable pageable) {
-
-		return commentRepository.getCommentsByTaskIds(idEncoder.decode(taskId), pageable)
-				.map(t -> new CommentResponse(t.getId(), t.getText(), idEncoder.endcode(t.getuserId()),
-						t.getfirstName(), t.getlastName(), t.getimagePath(), t.getCreatedAt()));
-
-	}
-
-	@Override
-	public void deleteComment(long commentId, String userId) {
-		Comment comment = commentRepository.findById(commentId)
-				.orElseThrow(() -> new ResourceNotFoundException("Can not delete this task review"));
-		methodGeneral.validatePermission(idEncoder.decode(userId), comment.getUser().getId());
-		commentRepository.delete(comment);
-	}
-
+    @Override
+    public void deleteComment(String commentId) {
+        Long currentUserId = authService.getUserIdInContext();
+        Long commentIdLong = idEncoder.decode(commentId);
+        commentRepository.findById(commentIdLong).ifPresentOrElse(comment -> {
+            if (comment.getUser().getId() != currentUserId) {
+                if (!taskAssignHelperService.isRoleUserInTask(currentUserId,
+                        comment.getTask().getId(), RoleEnum.ADMIN)) {
+                    throw new AccessDeniedException("The request do not have access");
+                }
+            }
+            commentRepository.delete(comment);
+        }, () -> {
+            throw new ResourceNotFoundException("This comment was deleted");
+        });
+    }
 }
