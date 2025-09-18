@@ -39,7 +39,7 @@ public class NotificationServiceImpl implements NotificationService {
 
 	private final AuthenticationService authService;
 
-	private final MessageServiceBundle messageServiceBundle;
+	private final MessageServiceBundle messageServiceBundle = new MessageServiceBundle();
 
 	private final FCMService fcmService;
 
@@ -48,7 +48,6 @@ public class NotificationServiceImpl implements NotificationService {
 	private NotificationServiceImpl(NotificationRepository notificationRepository, AuthenticationService authService,
 			UserHelperService userHelperService, TeamHelperService teamHelperService,
 			TaskHelperService taskHelperService,
-			MessageServiceBundle messageServiceBundle,
 			FCMService fcmService,
 			IdEncoder idEncoder) {
 		this.notificationRepository = notificationRepository;
@@ -56,7 +55,6 @@ public class NotificationServiceImpl implements NotificationService {
 		this.userHelperService = userHelperService;
 		this.teamHelperService = teamHelperService;
 		this.taskHelperService = taskHelperService;
-		this.messageServiceBundle = messageServiceBundle;
 		this.fcmService = fcmService;
 		this.idEncoder = idEncoder;
 	}
