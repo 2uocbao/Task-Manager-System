@@ -3,7 +3,6 @@ package com.quocbao.taskmanagementsystem.service.utils;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.repository.TeamMemberRepository;
 import com.quocbao.taskmanagementsystem.specifications.TeamMemberSpecification;
 
@@ -12,16 +11,13 @@ public class TeamMemberHelperService {
 
 	private final TeamMemberRepository teamMemberRepository;
 
-	private final IdEncoder idEncoder;
-
-	public TeamMemberHelperService(TeamMemberRepository teamMemberRepository, IdEncoder idEncoder) {
+	public TeamMemberHelperService(TeamMemberRepository teamMemberRepository) {
 		this.teamMemberRepository = teamMemberRepository;
-		this.idEncoder = idEncoder;
 	}
 
-	public Boolean isMemberTeam(Long userId, String teamId) {
+	public Boolean isMemberTeam(Long userId, Long teamId) {
 		return teamMemberRepository
 				.exists(Specification.where(TeamMemberSpecification.getTeamMemberByUserId(userId)
-						.and(TeamMemberSpecification.getTeamMemberByTeamId(idEncoder.decode(teamId)))));
+						.and(TeamMemberSpecification.getTeamMemberByTeamId(teamId))));
 	}
 }
