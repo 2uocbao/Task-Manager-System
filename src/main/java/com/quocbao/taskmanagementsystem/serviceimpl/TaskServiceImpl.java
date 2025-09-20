@@ -127,7 +127,7 @@ public class TaskServiceImpl implements TaskService {
 			Pageable pageable) {
 		Long currentUserId = authService.getUserIdInContext();
 		Long teamIdLong = idEncoder.decode(teamId);
-		if (teamMemberHelperService.isMemberTeam(currentUserId, teamIdLong)) {
+		if (!teamMemberHelperService.isMemberTeam(currentUserId, teamIdLong)) {
 			throw new AccessDeniedException("User can not access to list task of this team");
 		}
 		return taskRepository.getTask(currentUserId, teamIdLong, StatusEnum.valueOf(status),
