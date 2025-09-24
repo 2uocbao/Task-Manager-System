@@ -1,6 +1,8 @@
 package com.quocbao.taskmanagementsystem.serviceimpl;
 
 import java.util.List;
+
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -12,6 +14,7 @@ import com.quocbao.taskmanagementsystem.common.MethodGeneral;
 import com.quocbao.taskmanagementsystem.common.StatusEnum;
 import com.quocbao.taskmanagementsystem.entity.Team;
 import com.quocbao.taskmanagementsystem.entity.User;
+import com.quocbao.taskmanagementsystem.events.Member.AddMemberEvent;
 import com.quocbao.taskmanagementsystem.exception.DuplicateException;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
 import com.quocbao.taskmanagementsystem.payload.request.TeamRequest;
@@ -26,6 +29,8 @@ import com.quocbao.taskmanagementsystem.specifications.TeamSpecification;
 @Service
 public class TeamServiceImpl implements TeamService {
 
+	private final ApplicationEventPublisher applicationEventPublisher;
+
 	private final TeamRepository teamRepository;
 
 	private final UserHelperService userHelperService;
@@ -38,9 +43,11 @@ public class TeamServiceImpl implements TeamService {
 
 	private final IdEncoder idEncoder;
 
-	public TeamServiceImpl(TeamRepository teamRepository, UserHelperService userHelperService,
+	public TeamServiceImpl(ApplicationEventPublisher applicationEventPublisher, TeamRepository teamRepository,
+			UserHelperService userHelperService,
 			TaskHelperService taskHelperService, AuthenticationService authService,
 			MethodGeneral methodGeneral, IdEncoder idEncoder) {
+		this.applicationEventPublisher = applicationEventPublisher;
 		this.teamRepository = teamRepository;
 		this.userHelperService = userHelperService;
 		this.taskHelperService = taskHelperService;
@@ -58,6 +65,7 @@ public class TeamServiceImpl implements TeamService {
 		isNameAlreadyExist(currentUserId, teamRequest.getName());
 		User user = User.builder().id(currentUserId).build();
 		Team team = teamRepository.save(Team.builder().leaderId(user).name(teamRequest.getName()).build());
+		applicationEventPublisher.publishEvent(new AddMemberEvent(currentUserId, team.getId()));
 		return new TeamResponse(idEncoder.encode(team.getId()), team.getName());
 	}
 
