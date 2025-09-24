@@ -10,9 +10,9 @@ public interface CommentService {
 
 	public CommentResponse createComment(String taskId, CommentRequest commentRequest);
 
-	public CommentResponse updateComment(String commentId, CommentRequest commentRequest);
+	public CommentResponse updateComment(Long commentId, CommentRequest commentRequest);
 
 	public Page<CommentResponse> getCommentsofTask(String taskId, Pageable pageable);
 
-	public void deleteComment(String commentId);
+	public void deleteComment(Long commentId);
 }
