@@ -225,7 +225,7 @@ public class TaskTest {
         when(idEncoder.decode(taskIdS)).thenReturn(taskId);
         Task task = Task.builder().id(taskId).build();
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
-        when(taskAssignHelperService.isRoleUserInTask(userId, taskId, RoleEnum.ADMIN)).thenReturn(false);
+        when(taskAssignHelperService.isRoleUserInTask(userId, taskId, RoleEnum.ADMIN)).thenReturn(true);
         taskServiceImpl.deleteTask(taskIdS);
         verify(taskRepository, times(1)).findById(taskId);
         verify(taskRepository, times(1)).delete(task);
@@ -236,7 +236,7 @@ public class TaskTest {
         Task task = Task.builder().id(taskId).build();
         when(idEncoder.decode(taskIdS)).thenReturn(taskId);
         when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
-        when(taskAssignHelperService.isRoleUserInTask(userId, taskId, RoleEnum.ADMIN)).thenReturn(true);
+        when(taskAssignHelperService.isRoleUserInTask(userId, taskId, RoleEnum.ADMIN)).thenReturn(false);
         assertThrows(ForbiddenException.class, () -> {
             taskServiceImpl.deleteTask(taskIdS);
         });
@@ -289,7 +289,7 @@ public class TaskTest {
             }
         };
         when(idEncoder.decode(teamIdS)).thenReturn(teamId);
-        when(teamMemberHelperService.isMemberTeam(userId, teamId)).thenReturn(false);
+        when(teamMemberHelperService.isMemberTeam(userId, teamId)).thenReturn(true);
         Pageable pageable = PageRequest.of(0, 10);
         when(taskRepository.getTask(userId, teamId, StatusEnum.PENDING, PriorityEnum.HIGH,
                 Timestamp.valueOf("2025-06-12 00:00:00"), Timestamp.valueOf("2025-06-12 00:00:00"), pageable))
@@ -305,7 +305,7 @@ public class TaskTest {
     @Test
     void testRetrieveList_AccessDenied() {
         when(idEncoder.decode(teamIdS)).thenReturn(teamId);
-        when(teamMemberHelperService.isMemberTeam(userId, teamId)).thenReturn(true);
+        when(teamMemberHelperService.isMemberTeam(userId, teamId)).thenReturn(false);
         Pageable pageable = PageRequest.of(0, 10);
         assertThrows(AccessDeniedException.class, () -> {
             taskServiceImpl.getTasks(teamIdS, taskIdS, taskIdS, teamIdS, taskIdS, pageable);
