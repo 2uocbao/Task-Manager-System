@@ -66,17 +66,16 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public CommentResponse updateComment(String commentId, CommentRequest commentRequest) {
+    public CommentResponse updateComment(Long commentId, CommentRequest commentRequest) {
         Long currentUserId = authService.getUserIdInContext();
-        Long commentIdLong = idEncoder.decode(commentId);
-        return commentRepository.findById(commentIdLong).map(comment -> {
-            if (comment.getUser().getId() != currentUserId) {
+        return commentRepository.findById(commentId).map(comment -> {
+            if (!comment.getUser().getId().equals(currentUserId)) {
                 throw new AccessDeniedException("User do not have access");
             }
             comment.setText(commentRequest.getText());
             Comment result = commentRepository.save(comment);
             applicationEventPublisher
-                    .publishEvent(new MentionUpdateEvent(currentUserId, commentIdLong, commentRequest.getMention()));
+                    .publishEvent(new MentionUpdateEvent(currentUserId, commentId, commentRequest.getMention()));
             return new CommentResponse(result);
         }).orElseThrow(() -> {
             throw new ResourceNotFoundException("Can not update task review");
@@ -99,11 +98,10 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public void deleteComment(String commentId) {
+    public void deleteComment(Long commentId) {
         Long currentUserId = authService.getUserIdInContext();
-        Long commentIdLong = idEncoder.decode(commentId);
-        commentRepository.findById(commentIdLong).ifPresentOrElse(comment -> {
-            if (comment.getUser().getId() != currentUserId) {
+        commentRepository.findById(commentId).ifPresentOrElse(comment -> {
+            if (!comment.getUser().getId().equals(currentUserId)) {
                 if (!taskAssignHelperService.isRoleUserInTask(currentUserId,
                         comment.getTask().getId(), RoleEnum.ADMIN)) {
                     throw new AccessDeniedException("The request do not have access");
