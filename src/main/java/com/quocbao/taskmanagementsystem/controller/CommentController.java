@@ -40,7 +40,7 @@ public class CommentController {
 	}
 
 	@PutMapping("/comments/{commentId}")
-	public DataResponse updatecomment(@PathVariable String commentId, @RequestBody CommentRequest commentRequest) {
+	public DataResponse updatecomment(@PathVariable Long commentId, @RequestBody CommentRequest commentRequest) {
 		return new DataResponse(HttpStatus.OK.value(), commentService.updateComment(commentId, commentRequest),
 				"Update successful");
 	}
@@ -64,7 +64,7 @@ public class CommentController {
 	}
 
 	@DeleteMapping("/comments/{commentId}")
-	public DataResponse deletecomment(@PathVariable String commentId) {
+	public DataResponse deletecomment(@PathVariable Long commentId) {
 		commentService.deleteComment(commentId);
 		return new DataResponse(HttpStatus.OK.value(), null, "Delete Successfull");
 	}
