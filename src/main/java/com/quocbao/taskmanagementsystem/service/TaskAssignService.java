@@ -14,4 +14,6 @@ public interface TaskAssignService {
 	public List<TaskAssignResponse> getTaskAssigns(String taskId);
 
 	public void assigneeHaveDeadline(Long taskId);
+
+	public void createAdminTask(Long userId, Long taskId);
 }
