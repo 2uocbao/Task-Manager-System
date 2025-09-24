@@ -73,7 +73,6 @@ public class CommentTest {
     @BeforeEach
     void defaultData() {
         when(authService.getUserIdInContext()).thenReturn(userId);
-        // when(idEncoder.decode(taskId)).thenReturn(taskIdL);
     }
 
     @Test
@@ -82,6 +81,7 @@ public class CommentTest {
         commentRequest.setText("Hello");
         commentRequest.setMention(Collections.emptyList());
 
+        when(idEncoder.decode(taskId)).thenReturn(taskIdL);
         when(taskHelperService.isTaskExist(taskIdL)).thenReturn(true);
         when(taskAssignHelperService.isUserInTask(userId, taskIdL)).thenReturn(true);
 
@@ -105,6 +105,7 @@ public class CommentTest {
         commentRequest.setText("Hello");
         commentRequest.setMention(new ArrayList<>(List.of("1", "2")));
 
+        when(idEncoder.decode(taskId)).thenReturn(taskIdL);
         when(taskHelperService.isTaskExist(taskIdL)).thenReturn(true);
         when(taskAssignHelperService.isUserInTask(userId, taskIdL)).thenReturn(true);
 
@@ -130,6 +131,7 @@ public class CommentTest {
     @Test
     void testCreate_ResourceNotFound() {
         CommentRequest commentRequest = new CommentRequest();
+        when(idEncoder.decode(taskId)).thenReturn(taskIdL);
         when(taskHelperService.isTaskExist(taskIdL)).thenReturn(false);
         assertThrows(ResourceNotFoundException.class, () -> {
             commentService.createComment(taskId, commentRequest);
@@ -141,6 +143,7 @@ public class CommentTest {
     @Test
     void testCreate_AccessDenied() {
         CommentRequest commentRequest = new CommentRequest();
+        when(idEncoder.decode(taskId)).thenReturn(taskIdL);
         when(taskHelperService.isTaskExist(taskIdL)).thenReturn(true);
         when(taskAssignHelperService.isUserInTask(userId, taskIdL)).thenReturn(false);
         assertThrows(AccessDeniedException.class, () -> {
@@ -155,17 +158,15 @@ public class CommentTest {
         CommentRequest commentRequest = new CommentRequest();
         commentRequest.setText("Hello");
         commentRequest.setMention(new ArrayList<>(List.of("1", "2")));
-        String commentId = "commentId";
         Long commentIdL = 1L;
         Comment comment = Comment.builder().id(commentIdL).text("Hello")
                 .user(User.builder().id(userId).build())
                 .createdAt(Timestamp.valueOf(LocalDateTime.now()))
                 .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
                 .build();
-        when(idEncoder.decode(commentId)).thenReturn(commentIdL);
         when(commentRepository.findById(anyLong())).thenReturn(Optional.of(comment));
         when(commentRepository.save(any(Comment.class))).thenReturn(comment);
-        commentService.updateComment(commentId, commentRequest);
+        commentService.updateComment(commentIdL, commentRequest);
         verify(commentRepository, times(1)).findById(commentIdL);
         verify(commentRepository, times(1)).save(any(Comment.class));
         verify(applicationEventPublisher, times(1)).publishEvent(any(MentionUpdateEvent.class));
@@ -176,17 +177,15 @@ public class CommentTest {
         CommentRequest commentRequest = new CommentRequest();
         commentRequest.setText("Hello");
         commentRequest.setMention(new ArrayList<>(List.of("1", "2")));
-        String commentId = "commentId";
         Long commentIdL = 1L;
         Comment comment = Comment.builder().id(commentIdL).text("Hello")
                 .user(User.builder().id(2L).build())
                 .createdAt(Timestamp.valueOf(LocalDateTime.now()))
                 .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
                 .build();
-        when(idEncoder.decode(commentId)).thenReturn(commentIdL);
         when(commentRepository.findById(commentIdL)).thenReturn(Optional.of(comment));
         assertThrows(AccessDeniedException.class, () -> {
-            commentService.updateComment(commentId, commentRequest);
+            commentService.updateComment(commentIdL, commentRequest);
         });
         verify(commentRepository, never()).save(any(Comment.class));
         verify(applicationEventPublisher, never()).publishEvent(any(MentionUpdateEvent.class));
@@ -195,12 +194,10 @@ public class CommentTest {
     @Test
     void testUpdate_ResourceNotFound() {
         CommentRequest commentRequest = new CommentRequest();
-        String commentId = "commentId";
         Long commentIdL = 1L;
-        when(idEncoder.decode(commentId)).thenReturn(commentIdL);
         when(commentRepository.findById(commentIdL)).thenReturn(Optional.empty());
         assertThrows(ResourceNotFoundException.class, () -> {
-            commentService.updateComment(commentId, commentRequest);
+            commentService.updateComment(commentIdL, commentRequest);
         });
         verify(commentRepository, never()).save(any(Comment.class));
         verify(applicationEventPublisher, never()).publishEvent(any(MentionUpdateEvent.class));
@@ -208,6 +205,7 @@ public class CommentTest {
 
     @Test
     void testRetrieveList_AccessDenied() {
+        when(idEncoder.decode(taskId)).thenReturn(taskIdL);
         when(taskAssignHelperService.isUserInTask(userId, taskIdL)).thenReturn(false);
         assertThrows(AccessDeniedException.class, () -> {
             commentService.getCommentsofTask(taskId, PageRequest.of(0, 10));
@@ -217,9 +215,7 @@ public class CommentTest {
 
     @Test
     void testDelete_SuccessWithCreatorComment() {
-        String commentId = "commentId";
         Long commentIdL = 1L;
-        when(idEncoder.decode(commentId)).thenReturn(commentIdL);
         Comment comment = Comment.builder().id(commentIdL).text("Hello")
                 .user(User.builder().id(userId).build())
                 .task(Task.builder().id(taskIdL).build())
@@ -227,16 +223,14 @@ public class CommentTest {
                 .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
                 .build();
         when(commentRepository.findById(commentIdL)).thenReturn(Optional.of(comment));
-        commentService.deleteComment(commentId);
+        commentService.deleteComment(commentIdL);
         verify(commentRepository, times(1)).findById(commentIdL);
         verify(commentRepository, times(1)).delete(comment);
     }
 
     @Test
     void testDelete_SuccessWithCreatorTask() {
-        String commentId = "commentId";
         Long commentIdL = 1L;
-        when(idEncoder.decode(commentId)).thenReturn(commentIdL);
         Comment comment = Comment.builder().id(commentIdL).text("Hello")
                 .user(User.builder().id(2L).build())
                 .task(Task.builder().id(taskIdL).build())
@@ -246,16 +240,14 @@ public class CommentTest {
         when(taskAssignHelperService.isRoleUserInTask(userId, comment.getTask().getId(), RoleEnum.ADMIN))
                 .thenReturn(true);
         when(commentRepository.findById(commentIdL)).thenReturn(Optional.of(comment));
-        commentService.deleteComment(commentId);
+        commentService.deleteComment(commentIdL);
         verify(commentRepository, times(1)).findById(commentIdL);
         verify(commentRepository, times(1)).delete(comment);
     }
 
     @Test
     void testDelete_AccessDeniedWithNoCreatorTask() {
-        String commentId = "commentId";
         Long commentIdL = 1L;
-        when(idEncoder.decode(commentId)).thenReturn(commentIdL);
         Comment comment = Comment.builder().id(commentIdL).text("Hello")
                 .user(User.builder().id(2L).build())
                 .task(Task.builder().id(taskIdL).build())
@@ -266,16 +258,14 @@ public class CommentTest {
                 .thenReturn(false);
         when(commentRepository.findById(commentIdL)).thenReturn(Optional.of(comment));
         assertThrows(AccessDeniedException.class, () -> {
-            commentService.deleteComment(commentId);
+            commentService.deleteComment(commentIdL);
         });
         verify(commentRepository, never()).delete(comment);
     }
 
     @Test
     void testDelete_AccessDeniedWithNoCreatorCommentAndTask() {
-        String commentId = "commentId";
         Long commentIdL = 1L;
-        when(idEncoder.decode(commentId)).thenReturn(commentIdL);
         Comment comment = Comment.builder().id(commentIdL).text("Hello")
                 .user(User.builder().id(2L).build())
                 .task(Task.builder().id(taskIdL).build())
@@ -286,7 +276,7 @@ public class CommentTest {
                 .thenReturn(false);
         when(commentRepository.findById(commentIdL)).thenReturn(Optional.of(comment));
         assertThrows(AccessDeniedException.class, () -> {
-            commentService.deleteComment(commentId);
+            commentService.deleteComment(commentIdL);
         });
         verify(commentRepository, never()).delete(comment);
     }
