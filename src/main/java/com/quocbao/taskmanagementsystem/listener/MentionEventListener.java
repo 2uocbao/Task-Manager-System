@@ -3,6 +3,7 @@ package com.quocbao.taskmanagementsystem.listener;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
 import com.quocbao.taskmanagementsystem.events.Mention.MentionAddEvent;
 import com.quocbao.taskmanagementsystem.events.Mention.MentionUpdateEvent;
 import com.quocbao.taskmanagementsystem.service.MentionService;
@@ -20,7 +21,8 @@ public class MentionEventListener {
     @Async("event_notifi")
     @EventListener
     public void addMention(MentionAddEvent addMentionEvent) {
-        mentionService.createMention(addMentionEvent.getUserId(), addMentionEvent.getCommentId(),
+        mentionService.createMention(addMentionEvent.getUserId(),
+                addMentionEvent.getCommentId(),
                 addMentionEvent.getMentionId());
     }
 
