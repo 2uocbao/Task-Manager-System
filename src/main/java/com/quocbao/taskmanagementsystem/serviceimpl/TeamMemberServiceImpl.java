@@ -1,7 +1,11 @@
 package com.quocbao.taskmanagementsystem.serviceimpl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -75,7 +79,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 		}
 
 		User user = User.builder().id(userMemberIdLong).build();
-		Team team = Team.builder().id(userMemberIdLong).build();
+		Team team = Team.builder().id(teamIdLong).build();
 
 		TeamMember teamMember = teamMemberRepository
 				.save(TeamMember.builder().user(user).team(team).role(RoleEnum.MEMBER).build());
@@ -95,7 +99,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 			throw new AccessDeniedException("You can not do this");
 		}
 		teamMemberRepository.findById(teamMemberIdLong).ifPresentOrElse(teamMember -> {
-			if (teamMember.getUser().getId() == currentUserId) {
+			if (teamMember.getUser().getId().equals(currentUserId)) {
 				throw new ForbiddenException("Could not delete");
 			}
 			teamMemberRepository.deleteById(teamMemberIdLong);
@@ -111,7 +115,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 	public Page<TeamMemberResponse> getTeamMembers(String teamId, Pageable pageable) {
 		Long currentUserId = authService.getUserIdInContext();
 		Long teamIdLong = idEncoder.decode(teamId);
-		if (alreadyExistUserInTeam(teamIdLong, currentUserId)) {
+		if (!alreadyExistUserInTeam(teamIdLong, currentUserId)) {
 			throw new AccessDeniedException("User do not have permission");
 		}
 		return teamMemberRepository.getTeamMembers(teamIdLong, pageable).map(teamMember -> {
@@ -125,18 +129,37 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 
 	@Override
 	public Page<TeamMemberResponse> searchTeamMembers(String teamId, String keyword, Pageable pageable) {
-		return teamMemberRepository.searchTeamMembers(idEncoder.decode(teamId), keyword, pageable).map(teamMember -> {
-			String userName = teamMember.getFirstName() + " " + teamMember.getLastName();
-			String image = teamMember.getImage();
-			return new TeamMemberResponse(teamId, idEncoder.encode(teamMember.getUserId()), userName, image,
-					ConvertData.timeStampToString(teamMember.getJoinedAt()));
-		});
+		Long currentUserId = authService.getUserIdInContext();
+		Long teamIdLong = idEncoder.decode(teamId);
+		if (!alreadyExistUserInTeam(teamIdLong, currentUserId)) {
+			throw new AccessDeniedException("User do not have permission");
+		}
+		List<TeamMemberResponse> teamMemberResponse = new ArrayList<>();
+
+		teamMemberRepository.searchTeamMembers(teamIdLong, keyword, pageable).getContent().stream()
+				.forEach(teamMember -> {
+					if (!teamMember.getUserId().equals(currentUserId)) {
+						String userName = teamMember.getFirstName() + " " + teamMember.getLastName();
+						String image = teamMember.getImage();
+						teamMemberResponse.add(
+								new TeamMemberResponse(teamId, idEncoder.encode(teamMember.getUserId()), userName,
+										image,
+										ConvertData.timeStampToString(teamMember.getJoinedAt())));
+					}
+				});
+		Page<TeamMemberResponse> teamMemberResponsePage = new PageImpl<>(teamMemberResponse, pageable,
+				teamMemberResponse.size());
+		return teamMemberResponsePage;
 	}
 
 	@Override
 	public void leaveTeam(String teamId) {
 		Long currentUserId = authService.getUserIdInContext();
 		Long teamIdLong = idEncoder.decode(teamId);
+
+		if (isLeaderOfTeam(currentUserId, teamIdLong, RoleEnum.ADMIN)) {
+			throw new ForbiddenException("You can not do this");
+		}
 
 		if (!alreadyExistUserInTeam(teamIdLong, currentUserId)) {
 			// Is the user in the team
