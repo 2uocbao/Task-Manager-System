@@ -78,7 +78,8 @@ public class ContactServiceImpl implements ContactService {
 		Long currentUserId = authService.getUserIdInContext();
 		Long contactIdLong = idEncoder.decode(contactId);
 		contactRepository.findById(contactIdLong).ifPresentOrElse(contact -> {
-			if (currentUserId != contact.getFriendId().getId() || currentUserId == contact.getUser().getId()) {
+			if (!currentUserId.equals(contact.getFriendId().getId())
+					|| currentUserId.equals(contact.getUser().getId())) {
 				throw new AccessDeniedException("User do not have access");
 			}
 			contact.setStatusEnum(StatusEnum.ACCEPTED);
