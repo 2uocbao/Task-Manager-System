@@ -80,14 +80,14 @@ public class TeamMemberTest {
 
     @BeforeEach
     void defaultValue() {
-        when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
-        // when(idEncoder.decode(uMemberIdS)).thenReturn(uMemberIdL);
         when(authService.getUserIdInContext()).thenReturn(userId);
         teamMemberRequest.setMemberId(uMemberIdS);
     }
 
     @Test
     void testCreate_Success() {
+        when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
+        when(idEncoder.decode(uMemberIdS)).thenReturn(uMemberIdL);
         when(memberRepository.exists(any(Specification.class))).thenReturn(true).thenReturn(false);
         when(contactService.isConnected(anyLong(), anyLong())).thenReturn(true);
 
@@ -111,6 +111,7 @@ public class TeamMemberTest {
 
     @Test
     void testCreate_AccessDenied() {
+        when(idEncoder.decode(uMemberIdS)).thenReturn(uMemberIdL);
         when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
         when(memberRepository.exists(any(Specification.class))).thenReturn(false);
         assertThrows(AccessDeniedException.class, () -> {
@@ -122,6 +123,7 @@ public class TeamMemberTest {
 
     @Test
     void testCreate_ResourceNotFound() {
+        when(idEncoder.decode(uMemberIdS)).thenReturn(uMemberIdL);
         when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
         when(memberRepository.exists(any(Specification.class))).thenReturn(true);
         when(contactService.isConnected(userId, 2L)).thenReturn(false);
@@ -135,6 +137,7 @@ public class TeamMemberTest {
     @Test
     void testCreate_Duplicate() {
         when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
+        when(idEncoder.decode(uMemberIdS)).thenReturn(uMemberIdL);
         when(memberRepository.exists(any(Specification.class))).thenReturn(true).thenReturn(true);
         when(contactService.isConnected(userId, 2L)).thenReturn(true);
         assertThrows(DuplicateException.class, () -> {
@@ -148,6 +151,7 @@ public class TeamMemberTest {
     void testDelete_Success() {
         String teamMemberIdS = "teamMemberId";
         Long teamMemberIdL = 1L;
+        when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
         when(idEncoder.decode(teamMemberIdS)).thenReturn(teamMemberIdL);
         TeamMember teamMember = TeamMember.builder().id(teamMemberIdL).team(Team.builder().id(teamIdL).build())
                 .user(User.builder().id(uMemberIdL).build()).build();
@@ -166,6 +170,8 @@ public class TeamMemberTest {
 
     @Test
     void testDelete_AccessDenied() {
+        when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
+        when(idEncoder.decode(uMemberIdS)).thenReturn(uMemberIdL);
         when(memberRepository.exists(any(Specification.class))).thenReturn(false);
         assertThrows(AccessDeniedException.class, () -> {
             memberService.deleteTeamMember(teamIdS, uMemberIdS);
@@ -179,12 +185,13 @@ public class TeamMemberTest {
         String teamMemberIdS = "teamMemberId";
         Long teamMemberIdL = 1L;
         when(idEncoder.decode(teamMemberIdS)).thenReturn(teamMemberIdL);
+        when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
         TeamMember teamMember = TeamMember.builder().id(teamMemberIdL).team(Team.builder().id(teamIdL).build())
                 .user(User.builder().id(userId).build()).build();
         when(memberRepository.exists(any(Specification.class))).thenReturn(true);
         when(memberRepository.findById(teamMemberIdL)).thenReturn(Optional.of(teamMember));
         assertThrows(ForbiddenException.class, () -> {
-            memberService.deleteTeamMember(teamMemberIdS, teamMemberIdS);
+            memberService.deleteTeamMember(teamIdS, teamMemberIdS);
         });
         verify(memberRepository, never()).deleteById(anyLong());
         verify(applicationEventPublisher, never()).publishEvent(any(NotificationAddEvent.class));
@@ -194,6 +201,7 @@ public class TeamMemberTest {
     void testDelete_ResourcNotFound() {
         String teamMemberIdS = "teamMemberId";
         Long teamMemberIdL = 1L;
+        when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
         when(idEncoder.decode(teamMemberIdS)).thenReturn(teamMemberIdL);
         when(memberRepository.exists(any(Specification.class))).thenReturn(true);
         when(memberRepository.findById(teamMemberIdL)).thenReturn(Optional.empty());
@@ -239,7 +247,8 @@ public class TeamMemberTest {
             }
 
         };
-        when(memberRepository.exists(any(Specification.class))).thenReturn(false);
+        when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
+        when(memberRepository.exists(any(Specification.class))).thenReturn(true);
         Pageable pageable = PageRequest.of(0, 10);
         when(memberRepository.getTeamMembers(teamIdL, pageable)).thenReturn(new PageImpl<>(List.of(memberProjection)));
         Page<TeamMemberResponse> memberResponse = memberService.getTeamMembers(teamIdS, pageable);
@@ -250,7 +259,7 @@ public class TeamMemberTest {
     @Test
     void testRetrieveList_AccessDenied() {
         Pageable pageable = PageRequest.of(0, 10);
-        when(memberRepository.exists(any(Specification.class))).thenReturn(true);
+        when(memberRepository.exists(any(Specification.class))).thenReturn(false);
         assertThrows(AccessDeniedException.class, () -> {
             memberService.getTeamMembers(teamIdS, pageable);
         });
@@ -258,7 +267,8 @@ public class TeamMemberTest {
 
     @Test
     void testLeaveTeam_Success() {
-        when(memberRepository.exists(any(Specification.class))).thenReturn(true).thenReturn(false);
+        when(idEncoder.decode(teamIdS)).thenReturn(teamIdL);
+        when(memberRepository.exists(any(Specification.class))).thenReturn(false).thenReturn(true);
         when(assignService.isInAnyTask(userId)).thenReturn(false);
         when(memberRepository.delete(any(Specification.class))).thenReturn(1L);
         memberService.leaveTeam(teamIdS);
@@ -274,8 +284,16 @@ public class TeamMemberTest {
     }
 
     @Test
+    void testLeaveTeam_Forbidden() {
+        when(memberRepository.exists(any(Specification.class))).thenReturn(true);
+        assertThrows(ForbiddenException.class, () -> {
+            memberService.leaveTeam(teamIdS);
+        });
+    }
+
+    @Test
     void testLeaveTeam_ResourceNotFound() {
-        when(memberRepository.exists(any(Specification.class))).thenReturn(false);
+        when(memberRepository.exists(any(Specification.class))).thenReturn(false).thenReturn(false);
         assertThrows(ResourceNotFoundException.class, () -> {
             memberService.leaveTeam(teamIdS);
         });
@@ -283,7 +301,7 @@ public class TeamMemberTest {
 
     @Test
     void testLeaveTeam_Duplicate() {
-        when(memberRepository.exists(any(Specification.class))).thenReturn(true);
+        when(memberRepository.exists(any(Specification.class))).thenReturn(false).thenReturn(true);
         when(assignService.isInAnyTask(userId)).thenReturn(true);
         assertThrows(AccessDeniedException.class, () -> {
             memberService.leaveTeam(teamIdS);
