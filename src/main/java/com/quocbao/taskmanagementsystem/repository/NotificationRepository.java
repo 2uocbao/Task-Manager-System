@@ -51,7 +51,7 @@ public interface NotificationRepository
 			+ "te.name AS name "
 			+ "FROM Notification n "
 			+ "LEFT JOIN User u ON u.id = n.senderId "
-			+ "LEFT JOIN Task t ON t.id = n.contentId AND n.type = 'TASK' "
+			+ "LEFT JOIN Task t ON t.id = n.contentId AND (n.type = 'TASK' OR n.type = 'COMMENT') "
 			+ "LEFT JOIN Team te ON te.id = n.contentId AND n.type = 'TEAM' "
 			+ "WHERE n.receiverId = :userId AND n.isRead = :status AND (:type = 'ALL' OR n.type = :type) ")
 	Page<NotificationProjections> getNotifications(@Param("userId") Long userId, @Param("type") String type,
