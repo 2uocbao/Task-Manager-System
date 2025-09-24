@@ -62,9 +62,9 @@ public class NotificationServiceImpl implements NotificationService {
 	@Override
 	public void saveNotification(Notification notification) {
 		Notification result = notificationRepository.save(notification);
-		User sender = userHelperService.getUser(result.getSenderId()).get();
 		userHelperService.getUser(result.getReceiverId()).ifPresent((user -> {
-			if (!user.getToken().isEmpty()) {
+			if (user.getToken() != null) {
+				User sender = userHelperService.getUser(result.getSenderId()).get();
 				switch (result.getType()) {
 					case "TASK":
 						Task task = taskHelperService.getTask(result.getContentId()).get();
