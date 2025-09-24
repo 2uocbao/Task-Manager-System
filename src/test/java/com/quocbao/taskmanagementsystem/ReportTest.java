@@ -76,7 +76,6 @@ public class ReportTest {
     @BeforeEach
     void defaultData() {
         when(authenticationService.getUserIdInContext()).thenReturn(userId);
-        // when(idEncoder.decode(taskIdS)).thenReturn(taskId);
     }
 
     @Test
@@ -85,6 +84,7 @@ public class ReportTest {
         Task task = Task.builder().id(taskId).build();
         storageProperties.setLocation("app/storeFile");
 
+        when(idEncoder.decode(taskIdS)).thenReturn(taskId);
         when(storageProperties.getLocation()).thenReturn("app/storeFile");
         MockMultipartFile file = new MockMultipartFile("file", "text.txt", "text/plain", "Hello world".getBytes());
 
@@ -111,8 +111,8 @@ public class ReportTest {
 
     @Test
     void testAccessDenied() {
+        when(idEncoder.decode(taskIdS)).thenReturn(taskId);
         storageProperties.setLocation("app/storeFile");
-        when(storageProperties.getLocation()).thenReturn("app/storeFile");
         MockMultipartFile file = new MockMultipartFile("file", "text.txt", "text/plain", "Hello world".getBytes());
 
         when(taskAssignmentHelperService.isUserInTask(userId, taskId)).thenReturn(false);
@@ -129,6 +129,7 @@ public class ReportTest {
         ReportRequest reportRequest = new ReportRequest();
         reportRequest.setExternalUrl("taskIdS");
         reportRequest.setTaskId(taskIdS);
+        when(idEncoder.decode(taskIdS)).thenReturn(taskId);
         when(taskAssignmentHelperService.isUserInTask(userId, taskId)).thenReturn(true);
         when(taskHelperService.isTaskExist(taskId)).thenReturn(true);
         Report report = Report.builder().id(1L).user(User.builder().id(userId).build())
@@ -150,6 +151,7 @@ public class ReportTest {
         ReportRequest reportRequest = new ReportRequest();
         reportRequest.setExternalUrl("taskIdS");
         reportRequest.setTaskId(taskIdS);
+        when(idEncoder.decode(taskIdS)).thenReturn(taskId);
         when(taskAssignmentHelperService.isUserInTask(userId, taskId)).thenReturn(false);
         assertThrows(AccessDeniedException.class, () -> {
             reportServiceImpl.createReportForLink(reportRequest);
@@ -164,6 +166,7 @@ public class ReportTest {
         ReportRequest reportRequest = new ReportRequest();
         reportRequest.setExternalUrl("taskIdS");
         reportRequest.setTaskId(taskIdS);
+        when(idEncoder.decode(taskIdS)).thenReturn(taskId);
         when(taskAssignmentHelperService.isUserInTask(userId, taskId)).thenReturn(true);
         when(taskHelperService.isTaskExist(taskId)).thenReturn(false);
         assertThrows(ResourceNotFoundException.class, () -> {
@@ -253,6 +256,7 @@ public class ReportTest {
 
     @Test
     void testRetrieveList_AccessDenied() {
+        when(idEncoder.decode(taskIdS)).thenReturn(taskId);
         when(taskAssignmentHelperService.isUserInTask(userId, taskId)).thenReturn(false);
         assertThrows(AccessDeniedException.class, () -> {
             reportServiceImpl.getReports(taskIdS);
