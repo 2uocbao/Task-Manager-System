@@ -7,7 +7,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,12 +32,6 @@ public class UserTest {
 	@InjectMocks
 	private UserServiceImpl userService;
 
-	@BeforeEach
-	void defaultData() {
-		Long userId = 1L;
-		when(authenticationService.getUserIdInContext()).thenReturn(userId);
-	}
-
 	@Test
 	void testGetUserByEmail_Success() {
 		String email = "abc@gmail.com";
@@ -53,10 +46,8 @@ public class UserTest {
 
 	@Test
 	void testGetUserByEmail_NotFound() {
-		// Arrange
 		String email = "notfound@example.com";
 		when(userRepository.findByEmail(email)).thenReturn(null);
-		// Act & Assert
 		assertThrows(ResourceNotFoundException.class, () -> {
 			userService.getUserByEmail(email);
 		});
@@ -65,6 +56,7 @@ public class UserTest {
 
 	@Test
 	void testUpdateFCMToken_Success() {
+		when(authenticationService.getUserIdInContext()).thenReturn(1L);
 		User user = User.builder().id(1L).build();
 		when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
@@ -81,11 +73,10 @@ public class UserTest {
 
 	@Test
 	void testRemoveFCMToken_Success() {
+		when(authenticationService.getUserIdInContext()).thenReturn(1L);
 		User user = User.builder().id(1L).token("fcmtoken").language("vn").build();
 		when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 		userService.removeToken();
-		// System.out.println(user.getToken());
-		// System.out.println(user.getLanguage());
 		verify(userRepository).findById(user.getId());
 		verify(userRepository).save(user);
 	}
