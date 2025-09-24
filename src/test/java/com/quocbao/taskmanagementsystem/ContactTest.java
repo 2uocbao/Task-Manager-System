@@ -1,6 +1,7 @@
 package com.quocbao.taskmanagementsystem;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -139,6 +140,8 @@ public class ContactTest {
         ArgumentCaptor<NotificationAddEvent> captor = ArgumentCaptor.forClass(NotificationAddEvent.class);
         verify(applicationEventPublisher, times(1)).publishEvent(captor.capture());
         NotificationAddEvent event = captor.getValue();
+        assertEquals(userId, contact.getFriendId().getId());
+        assertNotEquals(userId, contact.getUser().getId());
         assertEquals(userId, event.getSenderId());
         assertEquals(2L, event.getReceiverId());
         assertEquals(NotificationType.CONTACTACEPT.toString(), event.getContentType());
