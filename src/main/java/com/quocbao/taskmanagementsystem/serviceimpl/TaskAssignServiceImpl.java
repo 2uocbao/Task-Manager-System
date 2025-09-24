@@ -61,13 +61,13 @@ public class TaskAssignServiceImpl implements TaskAssignService {
 		Long taskIdLong = idEncoder.decode(taskId);
 		Long assignerId = idEncoder.decode(taskAssignRequest.getToUserId());
 		// User is creator task
-		if (!isAdmin(currentUserId, taskIdLong)) {
+		if (!isAdmin(taskIdLong, currentUserId)) {
 			throw new AccessDeniedException("User do not have permission");
 		}
 
 		// Assignee is already exist in task
 
-		if (isAlreadyExist(currentUserId, taskIdLong)) {
+		if (isAlreadyExist(taskIdLong, assignerId)) {
 			throw new DuplicateException("User already exist in task");
 		}
 
@@ -101,7 +101,7 @@ public class TaskAssignServiceImpl implements TaskAssignService {
 		Long currentUserId = authService.getUserIdInContext();
 		Long assignIdLong = idEncoder.decode(assignId);
 		Long taskIdLong = idEncoder.decode(taskId);
-		if (!isAdmin(currentUserId, taskIdLong)) {
+		if (!isAdmin(taskIdLong, currentUserId)) {
 			throw new AccessDeniedException("User do not have permission");
 		}
 		taskAssignmentRepository.findById(assignIdLong).ifPresent(taskAssign -> {
@@ -149,6 +149,14 @@ public class TaskAssignServiceImpl implements TaskAssignService {
 			});
 		}
 
+	}
+
+	@Override
+	public void createAdminTask(Long userId, Long taskId) {
+		TaskAssignment taskAssignment = TaskAssignment.builder().user(User.builder().id(userId).build())
+				.task(Task.builder().id(taskId).build()).role(RoleEnum.ADMIN).build();
+
+		taskAssignmentRepository.save(taskAssignment);
 	}
 
 	protected Specification customSpecification(Long userId, Long taskId) {
