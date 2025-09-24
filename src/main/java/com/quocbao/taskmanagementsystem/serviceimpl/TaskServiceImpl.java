@@ -113,7 +113,7 @@ public class TaskServiceImpl implements TaskService {
 		Long currentUserId = authService.getUserIdInContext();
 		Long taskIdLong = idEncoder.decode(taskId);
 		taskRepository.findById(taskIdLong).ifPresentOrElse(task -> {
-			if (taskAssignmentHelperService.isRoleUserInTask(currentUserId, taskIdLong, RoleEnum.ADMIN)) {
+			if (!taskAssignmentHelperService.isRoleUserInTask(currentUserId, taskIdLong, RoleEnum.ADMIN)) {
 				throw new ForbiddenException("User do not have permission");
 			}
 			taskRepository.delete(task);
