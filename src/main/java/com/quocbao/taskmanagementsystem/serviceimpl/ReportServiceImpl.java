@@ -143,11 +143,6 @@ public class ReportServiceImpl implements ReportService {
 
 	@Override
 	public List<ReportResponse> getReports(String taskId) {
-		Long currentUserId = authService.getUserIdInContext();
-		Long taskIdL = idEncoder.decode(taskId);
-		if (!isMemberInTask(taskIdL, currentUserId)) {
-			throw new AccessDeniedException("User do not have access");
-		}
 		Specification<Report> specification = Specification
 				.where(ReportSpecification.getReportByTaskId(idEncoder.decode(taskId)));
 		List<Report> reportPage = reportRepository.findAll(specification,
