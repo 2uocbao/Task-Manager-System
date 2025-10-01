@@ -4,6 +4,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.common.RoleEnum;
@@ -11,7 +12,6 @@ import com.quocbao.taskmanagementsystem.entity.Task;
 import com.quocbao.taskmanagementsystem.entity.Comment;
 import com.quocbao.taskmanagementsystem.entity.User;
 import com.quocbao.taskmanagementsystem.events.Mention.MentionAddEvent;
-import com.quocbao.taskmanagementsystem.events.Mention.MentionUpdateEvent;
 import com.quocbao.taskmanagementsystem.exception.AccessDeniedException;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
 import com.quocbao.taskmanagementsystem.payload.request.CommentRequest;
@@ -45,6 +45,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    @Transactional
     public CommentResponse createComment(String taskId, CommentRequest commentRequest) {
         Long currentUserId = authService.getUserIdInContext();
         Long taskIdLong = idEncoder.decode(taskId);
@@ -58,10 +59,9 @@ public class CommentServiceImpl implements CommentService {
         User user = User.builder().id(currentUserId).build();
         Comment commentBuilder = Comment.builder().task(task).user(user).text(commentRequest.getText()).build();
         Comment comment = commentRepository.save(commentBuilder);
-        if (!commentRequest.getMention().isEmpty()) {
-            applicationEventPublisher
-                    .publishEvent(new MentionAddEvent(currentUserId, comment.getId(), commentRequest.getMention()));
-        }
+        applicationEventPublisher
+                .publishEvent(new MentionAddEvent(currentUserId, comment.getId(), taskIdLong,
+                        commentRequest.getText()));
         return new CommentResponse(comment);
     }
 
@@ -74,8 +74,10 @@ public class CommentServiceImpl implements CommentService {
             }
             comment.setText(commentRequest.getText());
             Comment result = commentRepository.save(comment);
-            applicationEventPublisher
-                    .publishEvent(new MentionUpdateEvent(currentUserId, commentId, commentRequest.getMention()));
+            // applicationEventPublisher
+            // .publishEvent(new MentionUpdateEvent(currentUserId, commentId,
+            // comment.getTask().getId(),
+            // commentRequest.getMention()));
             return new CommentResponse(result);
         }).orElseThrow(() -> {
             throw new ResourceNotFoundException("Can not update task review");
@@ -84,11 +86,6 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public Page<CommentResponse> getCommentsofTask(String taskId, Pageable pageable) {
-        Long currentUserId = authService.getUserIdInContext();
-        Long taskIdLong = idEncoder.decode(taskId);
-        if (!taskAssignHelperService.isUserInTask(currentUserId, taskIdLong)) {
-            throw new AccessDeniedException("User is not member in this task");
-        }
         return commentRepository.getCommentsByTaskIds(idEncoder.decode(taskId),
                 pageable)
                 .map(t -> new CommentResponse(t.getId(), t.getText(),
