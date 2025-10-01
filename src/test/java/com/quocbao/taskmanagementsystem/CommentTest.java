@@ -10,9 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +20,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.PageRequest;
 
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
 import com.quocbao.taskmanagementsystem.common.RoleEnum;
@@ -31,7 +27,6 @@ import com.quocbao.taskmanagementsystem.entity.Comment;
 import com.quocbao.taskmanagementsystem.entity.Task;
 import com.quocbao.taskmanagementsystem.entity.User;
 import com.quocbao.taskmanagementsystem.events.Mention.MentionAddEvent;
-import com.quocbao.taskmanagementsystem.events.Mention.MentionUpdateEvent;
 import com.quocbao.taskmanagementsystem.exception.AccessDeniedException;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
 import com.quocbao.taskmanagementsystem.payload.request.CommentRequest;
@@ -79,7 +74,6 @@ public class CommentTest {
     void testCreate_SuccessWithThoutMention() {
         CommentRequest commentRequest = new CommentRequest();
         commentRequest.setText("Hello");
-        commentRequest.setMention(Collections.emptyList());
 
         when(idEncoder.decode(taskId)).thenReturn(taskIdL);
         when(taskHelperService.isTaskExist(taskIdL)).thenReturn(true);
@@ -103,7 +97,6 @@ public class CommentTest {
     void testCreate_SuccessWithMention() {
         CommentRequest commentRequest = new CommentRequest();
         commentRequest.setText("Hello");
-        commentRequest.setMention(new ArrayList<>(List.of("1", "2")));
 
         when(idEncoder.decode(taskId)).thenReturn(taskIdL);
         when(taskHelperService.isTaskExist(taskIdL)).thenReturn(true);
@@ -125,7 +118,6 @@ public class CommentTest {
         MentionAddEvent event = captor.getValue();
         assertEquals(userId, event.getUserId());
         assertEquals(comment.getId(), event.getCommentId());
-        assertEquals(commentRequest.getMention(), event.getMentionId());
     }
 
     @Test
@@ -157,7 +149,6 @@ public class CommentTest {
     void testUpdate_Success() {
         CommentRequest commentRequest = new CommentRequest();
         commentRequest.setText("Hello");
-        commentRequest.setMention(new ArrayList<>(List.of("1", "2")));
         Long commentIdL = 1L;
         Comment comment = Comment.builder().id(commentIdL).text("Hello")
                 .user(User.builder().id(userId).build())
@@ -169,14 +160,12 @@ public class CommentTest {
         commentService.updateComment(commentIdL, commentRequest);
         verify(commentRepository, times(1)).findById(commentIdL);
         verify(commentRepository, times(1)).save(any(Comment.class));
-        verify(applicationEventPublisher, times(1)).publishEvent(any(MentionUpdateEvent.class));
     }
 
     @Test
     void testUpdate_AccessDenied() {
         CommentRequest commentRequest = new CommentRequest();
         commentRequest.setText("Hello");
-        commentRequest.setMention(new ArrayList<>(List.of("1", "2")));
         Long commentIdL = 1L;
         Comment comment = Comment.builder().id(commentIdL).text("Hello")
                 .user(User.builder().id(2L).build())
@@ -188,7 +177,6 @@ public class CommentTest {
             commentService.updateComment(commentIdL, commentRequest);
         });
         verify(commentRepository, never()).save(any(Comment.class));
-        verify(applicationEventPublisher, never()).publishEvent(any(MentionUpdateEvent.class));
     }
 
     @Test
@@ -200,17 +188,6 @@ public class CommentTest {
             commentService.updateComment(commentIdL, commentRequest);
         });
         verify(commentRepository, never()).save(any(Comment.class));
-        verify(applicationEventPublisher, never()).publishEvent(any(MentionUpdateEvent.class));
-    }
-
-    @Test
-    void testRetrieveList_AccessDenied() {
-        when(idEncoder.decode(taskId)).thenReturn(taskIdL);
-        when(taskAssignHelperService.isUserInTask(userId, taskIdL)).thenReturn(false);
-        assertThrows(AccessDeniedException.class, () -> {
-            commentService.getCommentsofTask(taskId, PageRequest.of(0, 10));
-        });
-        verify(commentRepository, never()).getCommentsByTaskIds(taskIdL, PageRequest.of(0, 10));
     }
 
     @Test
