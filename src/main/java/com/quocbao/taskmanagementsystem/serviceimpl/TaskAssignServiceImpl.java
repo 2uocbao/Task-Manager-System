@@ -116,11 +116,7 @@ public class TaskAssignServiceImpl implements TaskAssignService {
 
 	@Override
 	public List<TaskAssignResponse> getTaskAssigns(String taskId) {
-		Long currentUserId = authService.getUserIdInContext();
 		Long taskIdL = idEncoder.decode(taskId);
-		if (!isAlreadyExist(taskIdL, currentUserId)) {
-			throw new AccessDeniedException("User do not have permission");
-		}
 		return taskAssignmentRepository.getTaskAssignments(taskIdL).stream()
 				.map(taskAssignment -> {
 					String username = Optional.ofNullable(taskAssignment.getFirstName()).orElse("") + " "
