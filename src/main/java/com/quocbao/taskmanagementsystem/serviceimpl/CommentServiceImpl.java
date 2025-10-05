@@ -12,6 +12,7 @@ import com.quocbao.taskmanagementsystem.entity.Task;
 import com.quocbao.taskmanagementsystem.entity.Comment;
 import com.quocbao.taskmanagementsystem.entity.User;
 import com.quocbao.taskmanagementsystem.events.Mention.MentionAddEvent;
+import com.quocbao.taskmanagementsystem.events.Mention.MentionUpdateEvent;
 import com.quocbao.taskmanagementsystem.exception.AccessDeniedException;
 import com.quocbao.taskmanagementsystem.exception.ResourceNotFoundException;
 import com.quocbao.taskmanagementsystem.payload.request.CommentRequest;
@@ -72,12 +73,11 @@ public class CommentServiceImpl implements CommentService {
             if (!comment.getUser().getId().equals(currentUserId)) {
                 throw new AccessDeniedException("User do not have access");
             }
+            applicationEventPublisher
+                    .publishEvent(new MentionUpdateEvent(currentUserId, commentId, comment.getTask().getId(),
+                            comment.getText(), commentRequest.getText()));
             comment.setText(commentRequest.getText());
             Comment result = commentRepository.save(comment);
-            // applicationEventPublisher
-            // .publishEvent(new MentionUpdateEvent(currentUserId, commentId,
-            // comment.getTask().getId(),
-            // commentRequest.getMention()));
             return new CommentResponse(result);
         }).orElseThrow(() -> {
             throw new ResourceNotFoundException("Can not update task review");
