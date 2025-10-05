@@ -1,5 +1,7 @@
 package com.quocbao.taskmanagementsystem.service.utils;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,5 +51,31 @@ public class MentionHelperService {
                         NotificationType.TASK.toString(), NotificationType.COMMENT.toString()));
             }
         }
+    }
+
+    public void newMentionUpdate(String oldText, String newText, Long taskId, Long userId, Long commentId) {
+        Pattern pattern = Pattern.compile("@\\[(.*?)\\]\\((.*?)\\)");
+        Matcher matcherOld = pattern.matcher(oldText);
+        Matcher matcherNew = pattern.matcher(newText);
+        Set<String> oldMention = new HashSet<>();
+        Set<String> newMention = new HashSet<>();
+        while (matcherOld.find()) {
+            String mentionIdRough = matcherOld.group(1);
+            String mentionId = mentionIdRough.substring(2, mentionIdRough.length() - 2);
+            oldMention.add(mentionId);
+        }
+        while (matcherNew.find()) {
+            String mentionIdRough = matcherNew.group(1);
+            String mentionId = mentionIdRough.substring(2, mentionIdRough.length() - 2);
+            newMention.add(mentionId);
+        }
+
+        Set<String> difference = new HashSet<>(newMention);
+        difference.removeAll(oldMention);
+        difference.stream().forEach(mentionId -> {
+            Long mentionIdLong = idEncoder.decode(mentionId);
+            applicationEventPublisher.publishEvent(new NotificationAddEvent(userId, mentionIdLong, taskId,
+                    NotificationType.TASK.toString(), NotificationType.COMMENT.toString()));
+        });
     }
 }
