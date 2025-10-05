@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import com.quocbao.taskmanagementsystem.events.Mention.MentionAddEvent;
+import com.quocbao.taskmanagementsystem.events.Mention.MentionUpdateEvent;
 import com.quocbao.taskmanagementsystem.service.utils.MentionHelperService;
 
 @Component
@@ -28,5 +29,13 @@ public class MentionEventListener {
         mentionHelperService.getMentionAndPushNotiEvent(addMentionEvent.getUserId(),
                 addMentionEvent.getTaskId(),
                 addMentionEvent.getText());
+    }
+
+    @Async("event_notifi")
+    @EventListener
+    public void updateMention(MentionUpdateEvent mentionUpdateEvent) {
+        LOGGER.info("Running in: " + Thread.currentThread().getName());
+        mentionHelperService.newMentionUpdate(mentionUpdateEvent.getTextOld(), mentionUpdateEvent.getTextNew(),
+                mentionUpdateEvent.getTaskId(), mentionUpdateEvent.getUserId(), mentionUpdateEvent.getCommentId());
     }
 }
