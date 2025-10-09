@@ -38,12 +38,17 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 			CustomOauth2User oAuth2User = new CustomOauth2User((OAuth2User) authentication.getPrincipal());
 
 			User user = userRepository.findByEmail(oAuth2User.getEmail());
-
-			User newUser = User.builder().firstName(oAuth2User.getAttribute("given_name"))
-					.lastName(oAuth2User.getAttribute("family_name")).email(oAuth2User.getAttribute("email"))
-					.mention(oAuth2User.getEmail().split("@")[0]).image(oAuth2User.getAttribute("picture"))
-					.build();
-			user = userRepository.save(newUser);
+			if (user.getId() != null) {
+				user.setFirstName(oAuth2User.getAttribute("given_name"));
+				user.setLastName(oAuth2User.getAttribute("family_name"));
+				user.setImage(oAuth2User.getAttribute("picture"));
+			} else {
+				User newUser = User.builder().firstName(oAuth2User.getAttribute("given_name"))
+						.lastName(oAuth2User.getAttribute("family_name")).email(oAuth2User.getAttribute("email"))
+						.mention(oAuth2User.getEmail().split("@")[0]).image(oAuth2User.getAttribute("picture"))
+						.build();
+				user = userRepository.save(newUser);
+			}
 
 			String token = jwtTokenProvider.generateToken(user);
 			String refresh = jwtTokenProvider.generateRefreshToken(user);
