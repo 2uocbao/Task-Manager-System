@@ -181,7 +181,7 @@ public class TeamMemberServiceImpl implements TeamMemberService {
 	@Override
 	public void addLeaderTeam(Long userId, Long teamId) {
 		TeamMember teamMember = TeamMember.builder().user(User.builder().id(userId).build())
-				.team(Team.builder().id(teamId).build()).build();
+				.team(Team.builder().id(teamId).build()).role(RoleEnum.ADMIN).build();
 		teamMemberRepository.save(teamMember);
 	}
 
