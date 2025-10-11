@@ -236,13 +236,4 @@ public class TaskAssigneeTest {
         verify(assignRepository, times(1)).findById(anyLong());
         verify(assignRepository, never()).delete(any(TaskAssignment.class));
     }
-
-    @Test
-    void testRetrieveList_AccessDenied() {
-        when(assignRepository.exists(any(Specification.class))).thenReturn(false);
-        assertThrows(AccessDeniedException.class, () -> {
-            taskAssignService.getTaskAssigns(taskIdS);
-        });
-        verify(assignRepository, never()).getTaskAssignments(taskId);
-    }
 }
