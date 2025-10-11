@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
@@ -38,6 +39,9 @@ import com.quocbao.taskmanagementsystem.serviceimpl.TeamServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
 public class TeamTest {
+
+	@Mock
+	private ApplicationEventPublisher applicationEventPublisher;
 
 	@Mock
 	private TeamRepository teamRepository;
