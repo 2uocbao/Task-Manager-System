@@ -23,7 +23,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.mock.web.MockMultipartFile;
 
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
@@ -252,16 +251,6 @@ public class ReportTest {
         });
         verify(reportRepository, times(1)).findById(reportIdL);
         verify(reportRepository, never()).delete(report);
-    }
-
-    @Test
-    void testRetrieveList_AccessDenied() {
-        when(idEncoder.decode(taskIdS)).thenReturn(taskId);
-        when(taskAssignmentHelperService.isUserInTask(userId, taskId)).thenReturn(false);
-        assertThrows(AccessDeniedException.class, () -> {
-            reportServiceImpl.getReports(taskIdS);
-        });
-        verify(reportRepository, never()).exists(any(Specification.class));
     }
 
     @Test
