@@ -151,7 +151,7 @@ public class CommentTest {
         commentRequest.setText("Hello");
         Long commentIdL = 1L;
         Comment comment = Comment.builder().id(commentIdL).text("Hello")
-                .user(User.builder().id(userId).build())
+                .user(User.builder().id(userId).build()).task(Task.builder().id(taskIdL).build())
                 .createdAt(Timestamp.valueOf(LocalDateTime.now()))
                 .updatedAt(Timestamp.valueOf(LocalDateTime.now()))
                 .build();
