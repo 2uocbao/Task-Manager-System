@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import com.quocbao.taskmanagementsystem.common.IdEncoder;
+import com.quocbao.taskmanagementsystem.common.NotificationType;
 import com.quocbao.taskmanagementsystem.entity.Notification;
 import com.quocbao.taskmanagementsystem.entity.Task;
 import com.quocbao.taskmanagementsystem.entity.Team;
@@ -64,7 +65,10 @@ public class NotificationServiceImpl implements NotificationService {
 		Notification result = notificationRepository.save(notification);
 		userHelperService.getUser(result.getReceiverId()).ifPresent((user -> {
 			if (user.getToken() != null) {
-				User sender = userHelperService.getUser(result.getSenderId()).get();
+				User sender = new User();
+				if(notification.getTypeContent().equals(NotificationType.DUEAT.toString())) {
+					 sender = userHelperService.getUser(result.getSenderId()).get();
+				}
 				switch (result.getType()) {
 					case "TASK":
 						Task task = taskHelperService.getTask(result.getContentId()).get();
