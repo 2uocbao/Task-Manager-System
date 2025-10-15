@@ -66,7 +66,7 @@ public class NotificationServiceImpl implements NotificationService {
 		userHelperService.getUser(result.getReceiverId()).ifPresent((user -> {
 			if (user.getToken() != null) {
 				User sender = new User();
-				if(notification.getTypeContent().equals(NotificationType.DUEAT.toString())) {
+				if(!notification.getTypeContent().equals(NotificationType.DUEAT.toString())) {
 					 sender = userHelperService.getUser(result.getSenderId()).get();
 				}
 				switch (result.getType()) {
